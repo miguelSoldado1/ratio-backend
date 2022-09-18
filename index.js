@@ -85,3 +85,5 @@ mongoose
     app.listen(process.env.PORT, () => console.log(`Server running on port: ${process.env.PORT}`));
   })
   .catch((error) => console.log(error.message));
+
+module.exports = app;
