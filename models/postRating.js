@@ -21,6 +21,6 @@ const postSchema = mongoose.Schema(
   }
 );
 
-const postRating = COLLECTION_NAME != undefined ? mongoose.model("PostRating", postSchema, COLLECTION_NAME) : mongoose.model("PostRating", postSchema);
+const postRating = process.env.NODE_ENV === "production" ? mongoose.model("PostRating", postSchema, "postratings") : mongoose.model("PostRating", postSchema, "postratings_dev");
 
 export default postRating;
