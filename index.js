@@ -11,17 +11,14 @@ import profileScreenRoutes from "./routes/profileScreenRoutes.js";
 
 const app = express();
 dotenv.config();
+const { PORT, CLIENT_ID, CLIENT_SECRET, BACK_END_URL, FRONT_END_URL } = process.env;
 
 app
   .use(bodyParser.json({ limit: "30mb", extended: true }))
   .use(bodyParser.urlencoded({ limit: "30mb", extended: true }))
-  .use(cors());
+  .use(cors({ credentials: true, origin: FRONT_END_URL }));
 
 /* START AUTHORIZATION BOILERPLATE CODE */
-const PORT = process.env.PORT;
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const BACK_END_URL = process.env.BACK_END_URL;
 
 export const spotifyApi = new SpotifyWebApi({
   clientId: CLIENT_ID,
@@ -82,6 +79,6 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
-    app.listen(process.env.PORT, () => console.log(`Server running on port: ${process.env.PORT}`));
+    app.listen(PORT, () => console.log(`Server running on port: ${PORT}`));
   })
   .catch((error) => console.log(error.message));

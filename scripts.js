@@ -1,3 +1,5 @@
+import { parse } from "cookie";
+
 const RETURN_LIMIT = 20;
 const ALBUM_TYPE_FILTER = "album";
 
@@ -88,10 +90,7 @@ export const mapAlbum = (album) => {
 };
 
 export const getAccessToken = (req) => {
-  if (req?.headers?.authorization) {
-    var headersSplit = req.headers.authorization.split(" ");
-  }
-  return headersSplit && headersSplit[1] ? headersSplit[1] : undefined;
+  return parse(req.headers.cookie).access_token;
 };
 
 export const handleFilters = (filter) => {
