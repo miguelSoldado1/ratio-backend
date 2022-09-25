@@ -17,11 +17,9 @@ app
   .use(bodyParser.urlencoded({ limit: "30mb", extended: true }))
   .use(cors());
 
+const { PORT, CLIENT_ID, CLIENT_SECRET, BACK_END_URL, SCOPES, CONNECTION_URL } = process.env;
+
 /* START AUTHORIZATION BOILERPLATE CODE */
-const PORT = process.env.PORT;
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const BACK_END_URL = process.env.BACK_END_URL;
 
 export const spotifyApi = new SpotifyWebApi({
   clientId: CLIENT_ID,
@@ -29,11 +27,9 @@ export const spotifyApi = new SpotifyWebApi({
   redirectUri: `${BACK_END_URL}/callback`,
 });
 
-const scopes = process.env.SCOPES.split(",");
-
 app.get("/login", (req, res) => {
   try {
-    const redirectUrl = spotifyApi.createAuthorizeURL(scopes, req.query.pathname, false);
+    const redirectUrl = spotifyApi.createAuthorizeURL(SCOPES.split(","), req.query.pathname, false);
     res.redirect(redirectUrl);
   } catch (error) {
     res.status(error.statusCode).json(error.message);
@@ -77,11 +73,11 @@ app.use("/navigationBar", navigationBarRoutes);
 app.use("/profileScreen", profileScreenRoutes);
 
 mongoose
-  .connect(process.env.CONNECTION_URL, {
+  .connect(CONNECTION_URL, {
     useNewURlParser: true,
     useUnifiedTopology: true,
   })
   .then(() => {
-    app.listen(process.env.PORT, () => console.log(`Server running on port: ${process.env.PORT}`));
+    app.listen(PORT, () => console.log(`Server running on port: ${PORT}`));
   })
   .catch((error) => console.log(error.message));
