@@ -86,6 +86,7 @@ export const getAverageAlbumRating = async (req, res) => {
 };
 
 export const getRelatedAlbums = (req, res) => {
+  const RELATED_RAIL_MAX_SIZE = 10;
   const { artist_id, album_id } = req.query;
   const accessToken = getAccessToken(req);
   const spotifyApi = new SpotifyWebApi();
@@ -93,7 +94,7 @@ export const getRelatedAlbums = (req, res) => {
   spotifyApi
     .getArtistAlbums(artist_id)
     .then((data) => {
-      const result = mapArtistAlbums(data.body.items, album_id);
+      const result = mapArtistAlbums(data.body.items, album_id, RELATED_RAIL_MAX_SIZE);
       res.status(200).json(result);
     })
     .catch((error) => res.status(error.statusCode).json(error.message));
