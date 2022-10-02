@@ -13,6 +13,20 @@ export const getUserPosts = async (req, res) => {
         },
       },
       {
+        $group: {
+          _id: "$_id",
+          album_id: {
+            $last: "$album_id",
+          },
+          rating: {
+            $last: "$rating",
+          },
+          createdAt: {
+            $last: "$createdAt",
+          },
+        },
+      },
+      {
         $facet: {
           data: [
             {
@@ -33,10 +47,7 @@ export const getUserPosts = async (req, res) => {
         },
       },
     ]);
-    res.status(200).json({
-      data: postRatings[0]?.data?.map((postRating) => ({ id: postRating._id, album_id: postRating.album_id, rating: postRating.rating, createdAt: postRating.createdAt })),
-      count: postRatings[0]?.total[0]?.total ?? 0,
-    });
+    res.status(200).json({ data: postRatings[0]?.data, count: postRatings[0]?.total[0]?.total });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
