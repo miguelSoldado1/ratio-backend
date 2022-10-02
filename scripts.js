@@ -1,8 +1,7 @@
-const RETURN_LIMIT = 20;
 const ALBUM_TYPE_FILTER = "album";
 
 //can't use a forEach because of the need of break condition
-export const getUserRecentAlbums = (items) => {
+export const getUserRecentAlbums = (items, limit) => {
   let counter = 0;
   const result = [];
   for (var item in items) {
@@ -11,13 +10,13 @@ export const getUserRecentAlbums = (items) => {
       result.push(mapAlbum(album));
       counter++;
     }
-    if (counter >= RETURN_LIMIT) break;
+    if (counter >= limit) break;
   }
   return result;
 };
 
 //can't use a forEach because of the need of break condition
-export const getUserRecommendedAlbums = (items) => {
+export const getUserRecommendedAlbums = (items, limit) => {
   let counter = 0;
   const result = [];
   for (var item in items) {
@@ -26,7 +25,7 @@ export const getUserRecommendedAlbums = (items) => {
       result.push(mapAlbum(album));
       counter++;
     }
-    if (counter >= RETURN_LIMIT) break;
+    if (counter >= limit) break;
   }
   return result;
 };
@@ -42,14 +41,20 @@ export const getAlbumSearch = (items) => {
   return result;
 };
 
-export const mapArtistAlbums = (items, albumId) => {
+export const mapArtistAlbums = (items, albumId, limit) => {
   const result = [];
   for (var item in items) {
     const album = items[item];
 
-    if (result.findIndex((x) => x.name === album.name) < 0 && album.album_type == ALBUM_TYPE_FILTER && result.findIndex((x) => x.id == album.id) < 0 && album.id !== albumId) {
+    if (
+      result.findIndex((x) => x.name === album.name) < 0 &&
+      album.album_type == ALBUM_TYPE_FILTER &&
+      result.findIndex((x) => x.id == album.id) < 0 &&
+      album.id !== albumId
+    ) {
       result.push(mapAlbum(album));
     }
+    if (result.length >= limit) return result;
   }
   return result;
 };

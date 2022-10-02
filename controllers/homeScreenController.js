@@ -4,7 +4,7 @@ import postRating from "../models/postRating.js";
 import { mapAlbum, getAccessToken } from "../scripts.js";
 
 const WEEKS_FOR_LATEST_POSTS = 2;
-const LIMIT_OF_RESULTS = 20;
+const LIMIT_OF_RESULTS = 12;
 
 export const getRecentlyListened = (req, res) => {
   const accessToken = getAccessToken(req);
@@ -13,7 +13,7 @@ export const getRecentlyListened = (req, res) => {
   spotifyApi
     .getMyRecentlyPlayedTracks({ limit: 50 })
     .then((data) => {
-      const result = getUserRecentAlbums(data.body.items);
+      const result = getUserRecentAlbums(data.body.items, LIMIT_OF_RESULTS);
       res.status(200).json(result);
     })
     .catch((error) => res.status(error.statusCode).json(error.message));
@@ -57,7 +57,9 @@ export const getLatestPosts = async (req, res) => {
         $limit: LIMIT_OF_RESULTS,
       },
     ]);
-    Promise.all(postRatings.map(({ _id }) => fetchAlbum(_id, spotifyApi))).then((response) => res.status(200).json(response));
+    Promise.all(postRatings.map(({ _id }) => fetchAlbum(_id, spotifyApi))).then((response) =>
+      res.status(200).json(response)
+    );
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -87,7 +89,7 @@ export const getMyReleaseRadar = (req, res) => {
   spotifyApi
     .getNewReleases({ limit: 50 })
     .then((response) => {
-      const result = getUserRecommendedAlbums(response.body.albums.items);
+      const result = getUserRecommendedAlbums(response.body.albums.items, LIMIT_OF_RESULTS);
       res.status(200).json(result);
     })
     .catch((error) => res.status(error.statusCode).json(error.message));
