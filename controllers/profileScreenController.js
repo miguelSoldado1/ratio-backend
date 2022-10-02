@@ -2,12 +2,15 @@ import postRating from "../models/postRating.js";
 import { handleFilters } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 8;
+const DEFAULT_PAGE_NUMBER = 0;
 
 export const getUserPosts = async (req, res) => {
   try {
     const { user_id, page_number, order, page_size } = req.query;
     const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
+    const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
     let filter = handleFilters(order);
+
     // weird ass aggregation to get total of ratings
     const postRatings = await postRating.aggregate([
       {
@@ -36,7 +39,7 @@ export const getUserPosts = async (req, res) => {
               $sort: filter,
             },
             {
-              $skip: page_number * parsed_page_size,
+              $skip: parsed_page_number * parsed_page_size,
             },
             {
               $limit: parsed_page_size,
