@@ -14,7 +14,6 @@ export const getAlbum = (req, res) => {
   spotifyApi
     .getAlbum(req.query.album_id)
     .then((data) => {
-      console.log(data.body);
       if (data.body.album_type !== ALBUM_TYPE_FILTER) return res.status(404).json({ message: "not an album!", error: 404 });
       return res.status(200).json(getAlbumDataAndTracks(data?.body));
     })

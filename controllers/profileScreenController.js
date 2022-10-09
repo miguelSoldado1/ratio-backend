@@ -53,6 +53,7 @@ export const getUserPosts = async (req, res) => {
         },
       },
     ]);
+    if (postRatings[0]?.data?.length <= 0) return res.status(404).json({ message: "no ratings found for user!", error: 404 });
     res.status(200).json({ data: postRatings[0]?.data, count: postRatings[0]?.total[0]?.total });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
