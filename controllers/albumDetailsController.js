@@ -3,7 +3,7 @@ import postRating from "../models/postRating.js";
 import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
 import { mongoose } from "mongoose";
 
-const NUMBER_OF_ITEMS_SHOWN = 6;
+const ALBUM_TYPE_FILTER = "album";
 
 export const getAlbum = (req, res) => {
   const accessToken = getAccessToken(req);
@@ -12,21 +12,22 @@ export const getAlbum = (req, res) => {
   spotifyApi
     .getAlbum(req.query.album_id)
     .then((data) => {
-      const result = getAlbumDataAndTracks(data.body);
-      res.status(200).json(result);
+      console.log(data.body);
+      if (data.body.album_type !== ALBUM_TYPE_FILTER) return res.status(404).json({ message: "not an album!", error: 404 });
+      return res.status(200).json(getAlbumDataAndTracks(data?.body));
     })
     .catch((error) => res.status(error.statusCode).json(error.message));
 };
 
 export const getCommunityAlbumRating = async (req, res) => {
   try {
-    const { album_id, page_number, order } = req.query;
+    const { album_id, page_number, order, page_size } = req.query;
     let filter = handleFilters(order);
     const postRatings = await postRating
       .find({ album_id: album_id })
       .sort(filter)
-      .limit(NUMBER_OF_ITEMS_SHOWN)
-      .skip(page_number * NUMBER_OF_ITEMS_SHOWN);
+      .limit(page_size)
+      .skip(page_number * page_size);
     res.status(200).json(postRatings);
   } catch (error) {
     res.status(error.statusCode).json(error.message);
