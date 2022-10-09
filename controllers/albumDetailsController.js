@@ -3,6 +3,8 @@ import postRating from "../models/postRating.js";
 import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
 import { mongoose } from "mongoose";
 
+const DEFAULT_PAGE_SIZE = 6;
+const DEFAULT_PAGE_NUMBER = 0;
 const ALBUM_TYPE_FILTER = "album";
 
 export const getAlbum = (req, res) => {
@@ -22,12 +24,16 @@ export const getAlbum = (req, res) => {
 export const getCommunityAlbumRating = async (req, res) => {
   try {
     const { album_id, page_number, order, page_size } = req.query;
+    const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
+    const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
     let filter = handleFilters(order);
+
     const postRatings = await postRating
       .find({ album_id: album_id })
       .sort(filter)
-      .limit(page_size)
-      .skip(page_number * page_size);
+      .limit(parsed_page_size)
+      .skip(parsed_page_number * parsed_page_size);
+
     res.status(200).json(postRatings);
   } catch (error) {
     res.status(error.statusCode).json(error.message);
@@ -82,6 +88,7 @@ export const getAverageAlbumRating = async (req, res) => {
 };
 
 export const getRelatedAlbums = (req, res) => {
+  const RELATED_RAIL_MAX_SIZE = 10;
   const { artist_id, album_id } = req.query;
   const accessToken = getAccessToken(req);
   const spotifyApi = new SpotifyWebApi();
@@ -89,7 +96,7 @@ export const getRelatedAlbums = (req, res) => {
   spotifyApi
     .getArtistAlbums(artist_id)
     .then((data) => {
-      const result = mapArtistAlbums(data.body.items, album_id);
+      const result = mapArtistAlbums(data.body.items, album_id, RELATED_RAIL_MAX_SIZE);
       res.status(200).json(result);
     })
     .catch((error) => res.status(error.statusCode).json(error.message));
