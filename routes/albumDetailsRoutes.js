@@ -10,7 +10,7 @@ router.get("/getMyAlbumRating", albumDetailsController.getMyAlbumRating);
 router.get("/getRelatedAlbums", albumDetailsController.getRelatedAlbums);
 router.get("/getUsersProfile", albumDetailsController.getUsersProfile);
 router.post("/createPost", albumDetailsController.createPost);
-router.delete("/:_id/deletePost", albumDetailsController.deletePost);
+router.delete("/deletePost", albumDetailsController.deletePost);
 router.patch("/:_id/handleLikes", albumDetailsController.handleLikes);
 
 export default router;

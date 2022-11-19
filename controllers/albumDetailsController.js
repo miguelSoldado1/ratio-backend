@@ -43,7 +43,7 @@ export const getMyAlbumRating = async (req, res) => {
   try {
     const { album_id, user_id } = req.query;
     const postRatings = await postRating.findOne({ album_id: album_id, user_id: user_id });
-    var rating = -1;
+    var rating = null;
     if (postRatings?.rating) {
       rating = postRatings.rating;
     }
@@ -55,7 +55,7 @@ export const getMyAlbumRating = async (req, res) => {
 
 export const getAverageAlbumRating = async (req, res) => {
   try {
-    let roundedResult = -1;
+    let roundedResult = null;
     let numRatings = 0;
     const { album_id } = req.query;
     const postRatings = await postRating.aggregate([
@@ -109,10 +109,10 @@ export const createPost = async (req, res) => {
     const rating = await postRating.findOne({ user_id: user_id, album_id: newPost.album_id });
     if (rating === null) {
       await newPost.save();
-      res.status(201).json(newPost);
-    } else {
-      res.status(409).json({ message: "Album already rated!" });
+      const ratings = await postRating.find({ album_id: newPost.album_id }).sort({ createdAt: -1, album_id: 1 });
+      return res.status(201).json(ratings);
     }
+    return res.status(409).json({ message: "Album already rated!" });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -122,12 +122,13 @@ export const deletePost = async (req, res) => {
   try {
     const data = await getUser(req);
     const user_id = data.body.id;
-    const { _id } = req.params;
+    const { _id, album_id } = req.body;
     const rating = await postRating.findOneAndDelete({ _id: mongoose.Types.ObjectId(_id), user_id });
     if (!rating) {
       return res.status(404).send("No post with specified values.");
     }
-    res.status(200).json({ message: "Post deleted successfully." });
+    const ratings = await postRating.find({ album_id }).sort({ createdAt: -1, album_id: 1 });
+    res.status(200).json(ratings);
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
