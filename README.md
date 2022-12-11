@@ -11,13 +11,15 @@ It leverages the spotify API to display up to date information about new albums 
 to show user specific recommended albums.
 ## Tech/Stack
 
-The application is built using the MERN stack. The frontend is built with 
+- The application is built using the MERN stack. 
+- The frontend is built with 
 [ReactJS](https://reactjs.org) and [Zustand](https://github.com/pmndrs/zustand) 
-for global state managing it uses. Our [backend](https://github.com/miguelSoldado1/ratio-backend)
+for global state managing it uses. 
+- Our [backend](https://github.com/miguelSoldado1/ratio-backend)
 is a REST API with [ExpressJS](https://expressjs.com/) and [MongoDB](https://www.mongodb.com/home)
 for the database. the [backend](https://github.com/miguelSoldado1/ratio-backend) 
-also heavily uses the [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node) <3.
-Also the frontend is deployed in [Vercel](https://vercel.com/) and the backend is 
+also heavily uses the [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node).
+- Also the frontend is deployed in [Vercel](https://vercel.com/) and the backend is 
 deployed in [Railway](https://railway.app/).
 ## Setup/Environment Variables
 
