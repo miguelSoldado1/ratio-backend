@@ -23,6 +23,6 @@ const postSchema = mongoose.Schema(
 const postRating =
   process.env.NODE_ENV === "production"
     ? mongoose.model("PostRating", postSchema, "postratings")
-    : mongoose.model("PostRating", postSchema, "postratings_dev");
+    : mongoose.model("PostRating", postSchema, "postratings");
 
 export default postRating;
