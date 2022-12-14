@@ -36,4 +36,4 @@ FRONT_END_URL = http://localhost:3000
 SCOPES = user-read-private, user-read-recently-played, user-top-read, user-read-email
 PORT = 5000
 ```
-4. Run `npm start` to start the directory.
+4. Run `npm run devStart` to start the directory using nodemon for hot reload.
