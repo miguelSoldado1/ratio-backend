@@ -1,7 +1,6 @@
 {
-  "name": "server",
-  "version": "1.0.0",
-  "description": "",
+  "name": "ratio-backend",
+  "version": "0.1.0",
   "main": "index.js",
   "type": "module",
   "scripts": {
