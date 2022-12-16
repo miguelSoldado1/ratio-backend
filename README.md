@@ -12,11 +12,10 @@ to show user specific recommended albums.
 ## Tech/Stack
 
 - The application is built using the MERN stack. 
-- The frontend is built with 
+- The [frontend](https://github.com/miguelSoldado1/ratio-frontend) is built with 
 [ReactJS](https://reactjs.org) and [Zustand](https://github.com/pmndrs/zustand) 
-for global state managing it uses. 
-- Our [backend](https://github.com/miguelSoldado1/ratio-backend)
-is a REST API with [ExpressJS](https://expressjs.com/) and [MongoDB](https://www.mongodb.com/home)
+for global state managing. 
+- Our backend is a REST API with [ExpressJS](https://expressjs.com/) and [MongoDB](https://www.mongodb.com/home)
 for the database. the [backend](https://github.com/miguelSoldado1/ratio-backend) 
 also heavily uses the [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node).
 - Also the frontend is deployed in [Vercel](https://vercel.com/) and the backend is 
@@ -36,4 +35,4 @@ FRONT_END_URL = http://localhost:3000
 SCOPES = user-read-private, user-read-recently-played, user-top-read, user-read-email
 PORT = 5000
 ```
-4. Run `npm start` to start the directory.
+4. Run `npm run devStart` to start the directory using nodemon for hot reload.
