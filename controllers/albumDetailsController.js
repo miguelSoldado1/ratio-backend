@@ -1,11 +1,13 @@
 import SpotifyWebApi from "spotify-web-api-node";
+import { mongoose } from "mongoose";
 import postRating from "../models/postRating.js";
 import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
-import { mongoose } from "mongoose";
+import postLike from "../models/postLike.js";
 
 const DEFAULT_PAGE_SIZE = 6;
 const DEFAULT_PAGE_NUMBER = 0;
 const ALBUM_TYPE_FILTER = "album";
+const POST_LIKES = "likes";
 
 export const getAlbum = (req, res) => {
   const accessToken = getAccessToken(req);
@@ -27,12 +29,31 @@ export const getCommunityAlbumRating = async (req, res) => {
     const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
     let filter = handleFilters(order);
 
-    const postRatings = await postRating
-      .find({ album_id: album_id })
-      .sort(filter)
-      .limit(parsed_page_size)
-      .skip(parsed_page_number * parsed_page_size);
-
+    const postRatings = await postRating.aggregate([
+      { $match: { album_id: album_id } },
+      { $sort: filter },
+      { $skip: parsed_page_number * parsed_page_size },
+      { $limit: parsed_page_size },
+      {
+        $lookup: {
+          from: postLike.collection.name,
+          localField: "_id",
+          foreignField: "post_id",
+          as: POST_LIKES,
+        },
+      },
+      {
+        $addFields: {
+          [POST_LIKES]: {
+            $map: {
+              input: `$${POST_LIKES}`,
+              as: "like",
+              in: "$$like.user_id",
+            },
+          },
+        },
+      },
+    ]);
     res.status(200).json(postRatings);
   } catch (error) {
     res.status(error.statusCode).json(error.message);
@@ -121,12 +142,12 @@ export const createPost = async (req, res) => {
 export const deletePost = async (req, res) => {
   try {
     const data = await getUser(req);
-    const user_id = data.body.id;
     const { _id, album_id } = req.body;
-    const rating = await postRating.findOneAndDelete({ _id: mongoose.Types.ObjectId(_id), user_id });
+    const rating = await postRating.findOneAndDelete({ _id: mongoose.Types.ObjectId(_id), user_id: data.body.id });
     if (!rating) {
       return res.status(404).send("No post with specified values.");
     }
+    await postLike.deleteMany({ post_id: mongoose.Types.ObjectId(_id) });
     const ratings = await postRating.find({ album_id }).sort({ createdAt: -1, album_id: 1 });
     res.status(200).json(ratings);
   } catch (error) {
@@ -156,19 +177,18 @@ export const getUsersProfile = (req, res) => {
 
 export const handleLikes = async (req, res) => {
   try {
-    const liked = req.body.liked;
     const data = await getUser(req);
-    const user_id = data.body.id;
-    const { _id } = req.params;
-    var rating;
+    const { liked, ratingId } = req.body;
+    const userId = data.body.id;
+    let like;
     if (liked) {
-      var rating = await postRating.findByIdAndUpdate(mongoose.Types.ObjectId(_id), { $push: { likes: user_id } });
+      like = await postLike.findOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
+      if (like) return res.status(404).send("Post already liked");
+      like = await new postLike({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId }).save();
     } else {
-      var rating = await postRating.findByIdAndUpdate(mongoose.Types.ObjectId(_id), { $pull: { likes: user_id } });
+      like = await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
     }
-    if (!rating) {
-      return res.status(404).send("No post with specified values.");
-    }
+    if (like) return res.status(404).send("No post with specified values.");
     res.status(200).json({ message: "Post updated successfully." });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
