@@ -1,8 +1,8 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import { mongoose } from "mongoose";
 import postRating from "../models/postRating.js";
-import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
 import postLike from "../models/postLike.js";
+import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 6;
 const DEFAULT_PAGE_NUMBER = 0;
@@ -193,4 +193,38 @@ export const handleLikes = async (req, res) => {
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
+};
+
+export const getPostLikes = async (req, res) => {
+  try {
+    const { post_id, page_number, page_size } = req.query;
+    const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
+    const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
+    const likes = await postLike
+      .find({ post_id: post_id })
+      .skip(parsed_page_number * parsed_page_size)
+      .limit(parsed_page_size);
+    const postLikes = await getAllUserLikes(likes, req);
+    res.status(200).json({ postLikes: postLikes, count: await postLike.countDocuments({ post_id: post_id }) });
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
+};
+
+const getAllUserLikes = async (userLikes, req) => {
+  const accessToken = getAccessToken(req);
+  const spotifyApi = new SpotifyWebApi();
+  spotifyApi.setAccessToken(accessToken);
+
+  const userData = await Promise.all(
+    userLikes.map(async (postLike) => {
+      const data = await spotifyApi.getUser(postLike.user_id);
+      return {
+        id: data.body.id || null,
+        display_name: data.body.display_name || null,
+        image_url: data.body.images[0]?.url || null,
+      };
+    })
+  );
+  return userData;
 };
