@@ -183,12 +183,12 @@ export const handleLikes = async (req, res) => {
     let like;
     if (liked) {
       like = await postLike.findOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
-      if (like) return res.status(404).send("Post already liked");
+      if (like) return res.status(404).send({ message: "Post already liked!" });
       like = await new postLike({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId }).save();
     } else {
       like = await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
     }
-    if (like) return res.status(404).send("No post with specified values.");
+    if (!like) return res.status(404).send({ message: "No post with specified values." });
     res.status(200).json({ message: "Post updated successfully." });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
