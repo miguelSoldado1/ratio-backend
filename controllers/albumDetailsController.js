@@ -184,7 +184,11 @@ export const handleLikes = async (req, res) => {
     if (liked) {
       like = await postLike.findOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
       if (like) return res.status(404).send({ message: "Post already liked!" });
-      like = await new postLike({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId }).save();
+      like = await new postLike({
+        post_id: mongoose.Types.ObjectId(ratingId),
+        user_id: userId,
+        createdAt: new Date(),
+      }).save();
     } else {
       like = await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
     }
