@@ -201,15 +201,18 @@ export const handleLikes = async (req, res) => {
 
 export const getPostLikes = async (req, res) => {
   try {
-    const { post_id, page_number, page_size } = req.query;
-    const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
-    const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
-    const likes = await postLike
-      .find({ post_id: post_id })
-      .skip(parsed_page_number * parsed_page_size)
-      .limit(parsed_page_size);
+    const { post_id, cursor = undefined } = req.query;
+    let pipeline = [{ $match: { post_id: mongoose.Types.ObjectId(post_id) } }];
+    if (cursor) pipeline.push({ $match: { _id: { $gt: mongoose.Types.ObjectId(cursor) } } });
+    pipeline.push({ $limit: DEFAULT_PAGE_SIZE });
+    pipeline.push({ $sort: { createdAt: 1 } });
+    const likes = await postLike.aggregate(pipeline);
     const postLikes = await getAllUserLikes(likes, req);
-    res.status(200).json({ postLikes: postLikes, count: await postLike.countDocuments({ post_id: post_id }) });
+    res.status(200).json({
+      postLikes: postLikes,
+      cursor: likes[likes.length - 1]._id,
+      count: await postLike.countDocuments({ post_id: post_id }),
+    });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -219,16 +222,28 @@ const getAllUserLikes = async (userLikes, req) => {
   const accessToken = getAccessToken(req);
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(accessToken);
-
-  const userData = await Promise.all(
-    userLikes.map(async (postLike) => {
-      const data = await spotifyApi.getUser(postLike.user_id);
-      return {
-        id: data.body.id || null,
-        display_name: data.body.display_name || null,
-        image_url: data.body.images[0]?.url || null,
-      };
-    })
-  );
+  const userData = await Promise.all(userLikes.map(async (postLike) => await getSingleUserLike(spotifyApi, postLike)));
   return userData;
+};
+
+const getSingleUserLike = async (spotifyApi, postLike) => {
+  try {
+    const { body } = await spotifyApi.getUser(postLike.user_id);
+    return {
+      id: body?.id || null,
+      display_name: body?.display_name || null,
+      image_url: body?.images[0]?.url || null,
+      like_id: postLike._id,
+    };
+  } catch (error) {
+    if (error.body.error.status === 404) {
+      return {
+        id: null,
+        display_name: "User not found",
+        image_url: null,
+        like_id: postLike._id,
+      };
+    }
+    throw error;
+  }
 };
