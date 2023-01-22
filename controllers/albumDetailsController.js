@@ -203,14 +203,14 @@ export const getPostLikes = async (req, res) => {
   try {
     const { post_id, cursor = undefined } = req.query;
     let pipeline = [{ $match: { post_id: mongoose.Types.ObjectId(post_id) } }];
-    if (cursor) pipeline.push({ $match: { _id: { $gt: mongoose.Types.ObjectId(cursor) } } });
+    if (cursor) pipeline.push({ $match: { _id: { $lt: mongoose.Types.ObjectId(cursor) } } });
+    pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $limit: DEFAULT_PAGE_SIZE });
-    pipeline.push({ $sort: { createdAt: 1 } });
     const likes = await postLike.aggregate(pipeline);
     const postLikes = await getAllUserLikes(likes, req);
     res.status(200).json({
       postLikes: postLikes,
-      cursor: likes[likes.length - 1]._id,
+      cursor: likes.length - 1 > 0 ? likes[likes.length - 1]._id : null,
       count: await postLike.countDocuments({ post_id: post_id }),
     });
   } catch (error) {
