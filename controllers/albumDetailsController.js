@@ -24,7 +24,7 @@ export const getAlbum = (req, res) => {
 
 export const getCommunityAlbumRating = async (req, res) => {
   try {
-    const { album_id, page_number, order, page_size } = req.query;
+    const { album_id, page_number, order, page_size, user_id } = req.query;
     const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
     const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
     let filter = handleFilters(order);
@@ -44,12 +44,12 @@ export const getCommunityAlbumRating = async (req, res) => {
       },
       {
         $addFields: {
-          [POST_LIKES]: {
-            $map: {
-              input: `$${POST_LIKES}`,
-              as: "like",
-              in: "$$like.user_id",
-            },
+          likes: { $size: `$${POST_LIKES}` },
+          liked_by_user: {
+            $gt: [
+              { $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } },
+              0,
+            ],
           },
         },
       },
