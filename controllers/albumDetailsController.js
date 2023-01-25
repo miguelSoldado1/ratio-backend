@@ -46,10 +46,7 @@ export const getCommunityAlbumRating = async (req, res) => {
         $addFields: {
           likes: { $size: `$${POST_LIKES}` },
           liked_by_user: {
-            $gt: [
-              { $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } },
-              0,
-            ],
+            $gt: [{ $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } }, 0],
           },
         },
       },
@@ -234,6 +231,7 @@ const getSingleUserLike = async (spotifyApi, postLike) => {
       display_name: body?.display_name || null,
       image_url: body?.images[0]?.url || null,
       like_id: postLike._id,
+      createdAt: postLike.createdAt,
     };
   } catch (error) {
     if (error.body.error.status === 404) {
@@ -242,6 +240,7 @@ const getSingleUserLike = async (spotifyApi, postLike) => {
         display_name: "User not found",
         image_url: null,
         like_id: postLike._id,
+        createdAt: postLike.createdAt,
       };
     }
     throw error;
