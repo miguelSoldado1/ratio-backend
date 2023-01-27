@@ -211,7 +211,7 @@ export const getPostLikes = async (req, res) => {
     const postLikes = await getAllUserLikes(likes, req);
     res.status(200).json({
       postLikes: postLikes,
-      cursor: likes.length - 1 > 0 ? likes[likes.length - 1]._id : null,
+      cursor: postLikes.length === parsed_page_size ? likes[likes.length - 1]._id : null,
       count: await postLike.countDocuments({ post_id: post_id }),
     });
   } catch (error) {
