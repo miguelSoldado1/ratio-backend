@@ -46,7 +46,10 @@ export const getCommunityAlbumRating = async (req, res) => {
         $addFields: {
           likes: { $size: `$${POST_LIKES}` },
           liked_by_user: {
-            $gt: [{ $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } }, 0],
+            $gt: [
+              { $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } },
+              0,
+            ],
           },
         },
       },
@@ -198,11 +201,12 @@ export const handleLikes = async (req, res) => {
 
 export const getPostLikes = async (req, res) => {
   try {
-    const { post_id, cursor = undefined } = req.query;
+    const { post_id, cursor = undefined, page_size } = req.query;
+    const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
     let pipeline = [{ $match: { post_id: mongoose.Types.ObjectId(post_id) } }];
     if (cursor) pipeline.push({ $match: { _id: { $lt: mongoose.Types.ObjectId(cursor) } } });
     pipeline.push({ $sort: { createdAt: -1 } });
-    pipeline.push({ $limit: DEFAULT_PAGE_SIZE });
+    pipeline.push({ $limit: parsed_page_size });
     const likes = await postLike.aggregate(pipeline);
     const postLikes = await getAllUserLikes(likes, req);
     res.status(200).json({
