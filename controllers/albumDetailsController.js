@@ -1,11 +1,13 @@
 import SpotifyWebApi from "spotify-web-api-node";
-import postRating from "../models/postRating.js";
-import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
 import { mongoose } from "mongoose";
+import postRating from "../models/postRating.js";
+import postLike from "../models/postLike.js";
+import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 6;
 const DEFAULT_PAGE_NUMBER = 0;
 const ALBUM_TYPE_FILTER = "album";
+const POST_LIKES = "likes";
 
 export const getAlbum = (req, res) => {
   const accessToken = getAccessToken(req);
@@ -22,17 +24,36 @@ export const getAlbum = (req, res) => {
 
 export const getCommunityAlbumRating = async (req, res) => {
   try {
-    const { album_id, page_number, order, page_size } = req.query;
+    const { album_id, page_number, order, page_size, user_id } = req.query;
     const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
     const parsed_page_number = parseInt(page_number) || DEFAULT_PAGE_NUMBER;
     let filter = handleFilters(order);
 
-    const postRatings = await postRating
-      .find({ album_id: album_id })
-      .sort(filter)
-      .limit(parsed_page_size)
-      .skip(parsed_page_number * parsed_page_size);
-
+    const postRatings = await postRating.aggregate([
+      { $match: { album_id: album_id } },
+      { $sort: filter },
+      { $skip: parsed_page_number * parsed_page_size },
+      { $limit: parsed_page_size },
+      {
+        $lookup: {
+          from: postLike.collection.name,
+          localField: "_id",
+          foreignField: "post_id",
+          as: POST_LIKES,
+        },
+      },
+      {
+        $addFields: {
+          likes: { $size: `$${POST_LIKES}` },
+          liked_by_user: {
+            $gt: [
+              { $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } },
+              0,
+            ],
+          },
+        },
+      },
+    ]);
     res.status(200).json(postRatings);
   } catch (error) {
     res.status(error.statusCode).json(error.message);
@@ -121,12 +142,12 @@ export const createPost = async (req, res) => {
 export const deletePost = async (req, res) => {
   try {
     const data = await getUser(req);
-    const user_id = data.body.id;
     const { _id, album_id } = req.body;
-    const rating = await postRating.findOneAndDelete({ _id: mongoose.Types.ObjectId(_id), user_id });
+    const rating = await postRating.findOneAndDelete({ _id: mongoose.Types.ObjectId(_id), user_id: data.body.id });
     if (!rating) {
       return res.status(404).send("No post with specified values.");
     }
+    await postLike.deleteMany({ post_id: mongoose.Types.ObjectId(_id) });
     const ratings = await postRating.find({ album_id }).sort({ createdAt: -1, album_id: 1 });
     res.status(200).json(ratings);
   } catch (error) {
@@ -156,21 +177,76 @@ export const getUsersProfile = (req, res) => {
 
 export const handleLikes = async (req, res) => {
   try {
-    const liked = req.body.liked;
     const data = await getUser(req);
-    const user_id = data.body.id;
-    const { _id } = req.params;
-    var rating;
+    const { liked, ratingId } = req.body;
+    const userId = data.body.id;
+    let like;
     if (liked) {
-      var rating = await postRating.findByIdAndUpdate(mongoose.Types.ObjectId(_id), { $push: { likes: user_id } });
+      like = await postLike.findOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
+      if (like) return res.status(404).send({ message: "Post already liked!" });
+      like = await new postLike({
+        post_id: mongoose.Types.ObjectId(ratingId),
+        user_id: userId,
+        createdAt: new Date(),
+      }).save();
     } else {
-      var rating = await postRating.findByIdAndUpdate(mongoose.Types.ObjectId(_id), { $pull: { likes: user_id } });
+      like = await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
     }
-    if (!rating) {
-      return res.status(404).send("No post with specified values.");
-    }
+    if (!like) return res.status(404).send({ message: "No post with specified values." });
     res.status(200).json({ message: "Post updated successfully." });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
+  }
+};
+
+export const getPostLikes = async (req, res) => {
+  try {
+    const { post_id, cursor = undefined, page_size } = req.query;
+    const parsed_page_size = parseInt(page_size) || DEFAULT_PAGE_SIZE;
+    let pipeline = [{ $match: { post_id: mongoose.Types.ObjectId(post_id) } }];
+    if (cursor) pipeline.push({ $match: { _id: { $lt: mongoose.Types.ObjectId(cursor) } } });
+    pipeline.push({ $sort: { createdAt: -1 } });
+    pipeline.push({ $limit: parsed_page_size });
+    const likes = await postLike.aggregate(pipeline);
+    const postLikes = await getAllUserLikes(likes, req);
+    res.status(200).json({
+      postLikes: postLikes,
+      cursor: postLikes.length === parsed_page_size ? likes[likes.length - 1]._id : null,
+      count: await postLike.countDocuments({ post_id: post_id }),
+    });
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
+};
+
+const getAllUserLikes = async (userLikes, req) => {
+  const accessToken = getAccessToken(req);
+  const spotifyApi = new SpotifyWebApi();
+  spotifyApi.setAccessToken(accessToken);
+  const userData = await Promise.all(userLikes.map(async (postLike) => await getSingleUserLike(spotifyApi, postLike)));
+  return userData;
+};
+
+const getSingleUserLike = async (spotifyApi, postLike) => {
+  try {
+    const { body } = await spotifyApi.getUser(postLike.user_id);
+    return {
+      id: body?.id || null,
+      display_name: body?.display_name || null,
+      image_url: body?.images[0]?.url || null,
+      like_id: postLike._id,
+      createdAt: postLike.createdAt,
+    };
+  } catch (error) {
+    if (error.body.error.status === 404) {
+      return {
+        id: null,
+        display_name: "User not found",
+        image_url: null,
+        like_id: postLike._id,
+        createdAt: postLike.createdAt,
+      };
+    }
+    throw error;
   }
 };

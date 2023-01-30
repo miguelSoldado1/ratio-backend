@@ -9,15 +9,9 @@ const postSchema = mongoose.Schema(
     album_id: { type: String, required: true },
     rating: { type: Number, required: true },
     comment: String,
-    createdAt: {
-      type: Date,
-      default: new Date(),
-    },
-    likes: [],
+    createdAt: { type: Date, default: new Date() },
   },
-  {
-    versionKey: false,
-  }
+  { versionKey: false }
 );
 
 const postRating =

@@ -1,5 +1,6 @@
+import SpotifyWebApi from "spotify-web-api-node";
 import postRating from "../models/postRating.js";
-import { handleFilters } from "../scripts.js";
+import { getAccessToken, handleFilters } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 8;
 const DEFAULT_PAGE_NUMBER = 0;
