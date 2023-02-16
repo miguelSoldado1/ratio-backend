@@ -54,7 +54,7 @@ export const getCommunityAlbumRating = async (req, res) => {
         },
       },
     ]);
-    res.status(200).json(postRatings);
+    res.status(200).json({ ratings: postRatings, page: parsed_page_number });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -68,7 +68,7 @@ export const getMyAlbumRating = async (req, res) => {
     if (postRatings?.rating) {
       rating = postRatings.rating;
     }
-    res.status(200).json({ rating: rating });
+    res.status(200).json({ personalRating: rating });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -101,7 +101,7 @@ export const getAverageAlbumRating = async (req, res) => {
       roundedResult = Math.round(postRatings[0].average * 10) / 10;
       numRatings = postRatings[0].sum;
     }
-    res.status(200).json({ rating: roundedResult, sum: numRatings });
+    res.status(200).json({ averageRating: roundedResult, numRatings: numRatings });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -147,9 +147,9 @@ export const deletePost = async (req, res) => {
     if (!rating) {
       return res.status(404).send("No post with specified values.");
     }
-    await postLike.deleteMany({ post_id: mongoose.Types.ObjectId(_id) });
-    const ratings = await postRating.find({ album_id }).sort({ createdAt: -1, album_id: 1 });
-    res.status(200).json(ratings);
+    await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(_id) });
+
+    res.status(200).json({ message: "success" });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -175,25 +175,31 @@ export const getUsersProfile = (req, res) => {
     .catch((error) => res.status(error.statusCode).json(error.message));
 };
 
-export const handleLikes = async (req, res) => {
+export const createLike = async (req, res) => {
   try {
+    const { rating_id } = req.body;
     const data = await getUser(req);
-    const { liked, ratingId } = req.body;
     const userId = data.body.id;
-    let like;
-    if (liked) {
-      like = await postLike.findOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
-      if (like) return res.status(404).send({ message: "Post already liked!" });
-      like = await new postLike({
-        post_id: mongoose.Types.ObjectId(ratingId),
-        user_id: userId,
-        createdAt: new Date(),
-      }).save();
-    } else {
-      like = await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(ratingId), user_id: userId });
-    }
-    if (!like) return res.status(404).send({ message: "No post with specified values." });
-    res.status(200).json({ message: "Post updated successfully." });
+    const like = await postLike.findOne({ post_id: mongoose.Types.ObjectId(rating_id), user_id: userId });
+    if (like) return res.status(409).send({ message: "post already liked." });
+    const likeData = { post_id: mongoose.Types.ObjectId(rating_id), user_id: userId, createdAt: new Date() };
+    await new postLike(likeData).save();
+    const numberOfLikes = await postLike.countDocuments({ post_id: mongoose.Types.ObjectId(rating_id) });
+    res.status(200).json({ message: "post liked successfully.", numberOfLikes });
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
+};
+
+export const deleteLike = async (req, res) => {
+  try {
+    const { rating_id } = req.body;
+    const data = await getUser(req);
+    const user_id = data.body.id;
+    const like = await postLike.deleteOne({ post_id: mongoose.Types.ObjectId(rating_id), user_id: user_id });
+    if (like.deletedCount <= 0) return res.status(409).send({ message: "like not found." });
+    const numberOfLikes = await postLike.countDocuments({ post_id: mongoose.Types.ObjectId(rating_id) });
+    res.status(200).json({ message: "post disliked successfully.", numberOfLikes });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
