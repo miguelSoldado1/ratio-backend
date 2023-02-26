@@ -13,8 +13,7 @@ to show user specific recommended albums.
 
 - The application is built using the MERN stack. 
 - The [frontend](https://github.com/miguelSoldado1/ratio-frontend) is built with 
-[ReactJS](https://reactjs.org) and [Zustand](https://github.com/pmndrs/zustand) 
-for global state managing. 
+[ReactJS](https://reactjs.org) and [Tanstack Query](https://tanstack.com). 
 - Our backend is a REST API with [ExpressJS](https://expressjs.com/) and [MongoDB](https://www.mongodb.com/home)
 for the database. the [backend](https://github.com/miguelSoldado1/ratio-backend) 
 also heavily uses the [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node).
