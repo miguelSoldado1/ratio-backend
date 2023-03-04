@@ -11,7 +11,8 @@ router.get("/getRelatedAlbums", albumDetailsController.getRelatedAlbums);
 router.get("/getUsersProfile", albumDetailsController.getUsersProfile);
 router.post("/createPost", albumDetailsController.createPost);
 router.delete("/deletePost", albumDetailsController.deletePost);
-router.patch("/handleLikes", albumDetailsController.handleLikes);
+router.post("/createLike", albumDetailsController.createLike);
+router.delete("/deleteLike", albumDetailsController.deleteLike);
 router.get("/getPostLikes", albumDetailsController.getPostLikes);
 
 export default router;
