@@ -1,6 +1,5 @@
-import SpotifyWebApi from "spotify-web-api-node";
 import postRating from "../models/postRating.js";
-import { getAccessToken, handleFilters } from "../scripts.js";
+import { handleFilters, setAccessToken } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 8;
 const DEFAULT_PAGE_NUMBER = 0;
@@ -8,11 +7,8 @@ const DEFAULT_PAGE_NUMBER = 0;
 export const getUserDisplayName = async (req, res) => {
   try {
     const { user_id } = req.query;
-    const accessToken = getAccessToken(req);
-    const spotifyApi = new SpotifyWebApi();
-    spotifyApi.setAccessToken(accessToken);
+    const spotifyApi = setAccessToken(req);
     const user = await spotifyApi.getUser(user_id);
-
     res.status(200).json({ displayName: user.body.display_name });
   } catch (error) {
     res.status(error.statusCode).json(error.message);

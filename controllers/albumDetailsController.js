@@ -1,25 +1,25 @@
-import SpotifyWebApi from "spotify-web-api-node";
 import { mongoose } from "mongoose";
 import postRating from "../models/postRating.js";
 import postLike from "../models/postLike.js";
-import { getAlbumDataAndTracks, mapArtistAlbums, getAccessToken, handleFilters } from "../scripts.js";
+import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 6;
+const RELATED_RAIL_MAX_SIZE = 10;
 const DEFAULT_PAGE_NUMBER = 0;
 const ALBUM_TYPE_FILTER = "album";
 const POST_LIKES = "likes";
 
-export const getAlbum = (req, res) => {
-  const accessToken = getAccessToken(req);
-  const spotifyApi = new SpotifyWebApi();
-  spotifyApi.setAccessToken(accessToken);
-  spotifyApi
-    .getAlbum(req.query.album_id)
-    .then((data) => {
-      if (data.body.album_type !== ALBUM_TYPE_FILTER) return res.status(404).json({ message: "not an album!", error: 404 });
-      return res.status(200).json(getAlbumDataAndTracks(data?.body));
-    })
-    .catch((error) => res.status(error.statusCode).json(error.message));
+export const getAlbum = async (req, res) => {
+  try {
+    const spotifyApi = setAccessToken(req);
+    const data = await spotifyApi.getAlbum(req.query.album_id);
+    if (data.body.album_type !== ALBUM_TYPE_FILTER) {
+      return res.status(404).json({ message: "not an album!", error: 404 });
+    }
+    return res.status(200).json(getAlbumDataAndTracks(data?.body));
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
 };
 
 export const getCommunityAlbumRating = async (req, res) => {
@@ -46,10 +46,7 @@ export const getCommunityAlbumRating = async (req, res) => {
         $addFields: {
           likes: { $size: `$${POST_LIKES}` },
           liked_by_user: {
-            $gt: [
-              { $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } },
-              0,
-            ],
+            $gt: [{ $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } }, 0],
           },
         },
       },
@@ -107,19 +104,16 @@ export const getAverageAlbumRating = async (req, res) => {
   }
 };
 
-export const getRelatedAlbums = (req, res) => {
-  const RELATED_RAIL_MAX_SIZE = 10;
-  const { artist_id, album_id } = req.query;
-  const accessToken = getAccessToken(req);
-  const spotifyApi = new SpotifyWebApi();
-  spotifyApi.setAccessToken(accessToken);
-  spotifyApi
-    .getArtistAlbums(artist_id)
-    .then((data) => {
-      const result = mapArtistAlbums(data.body.items, album_id, RELATED_RAIL_MAX_SIZE);
-      res.status(200).json(result);
-    })
-    .catch((error) => res.status(error.statusCode).json(error.message));
+export const getRelatedAlbums = async (req, res) => {
+  try {
+    const { artist_id, album_id } = req.query;
+    const spotifyApi = setAccessToken(req);
+    const data = await spotifyApi.getArtistAlbums(artist_id);
+    const result = mapArtistAlbums(data.body.items, album_id, RELATED_RAIL_MAX_SIZE);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
 };
 
 export const createPost = async (req, res) => {
@@ -156,23 +150,18 @@ export const deletePost = async (req, res) => {
 };
 
 const getUser = async (req) => {
-  const accessToken = getAccessToken(req);
-  const spotifyApi = new SpotifyWebApi();
-  spotifyApi.setAccessToken(accessToken);
-  return spotifyApi.getMe();
+  const spotifyApi = setAccessToken(req);
+  return await spotifyApi.getMe();
 };
 
-export const getUsersProfile = (req, res) => {
-  const { user_id } = req.query;
-  const accessToken = getAccessToken(req);
-  const spotifyApi = new SpotifyWebApi();
-  spotifyApi.setAccessToken(accessToken);
-  spotifyApi
-    .getUser(user_id)
-    .then((data) => {
-      res.status(200).json({ id: data.body.id, display_name: data.body.display_name, image_url: data.body.images[0]?.url });
-    })
-    .catch((error) => res.status(error.statusCode).json(error.message));
+export const getUsersProfile = async (req, res) => {
+  try {
+    const spotifyApi = setAccessToken(req);
+    const data = await spotifyApi.getUser(req.query.user_id);
+    res.status(200).json({ id: data.body.id, display_name: data.body.display_name, image_url: data.body.images[0]?.url });
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
 };
 
 export const createLike = async (req, res) => {
@@ -226,9 +215,7 @@ export const getPostLikes = async (req, res) => {
 };
 
 const getAllUserLikes = async (userLikes, req) => {
-  const accessToken = getAccessToken(req);
-  const spotifyApi = new SpotifyWebApi();
-  spotifyApi.setAccessToken(accessToken);
+  const spotifyApi = setAccessToken(req);
   const userData = await Promise.all(userLikes.map(async (postLike) => await getSingleUserLike(spotifyApi, postLike)));
   return userData;
 };
