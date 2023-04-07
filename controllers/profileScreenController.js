@@ -4,12 +4,12 @@ import { handleFilters, setAccessToken } from "../scripts.js";
 const DEFAULT_PAGE_SIZE = 8;
 const DEFAULT_PAGE_NUMBER = 0;
 
-export const getUserDisplayName = async (req, res) => {
+export const getUserProfile = async (req, res) => {
   try {
     const { user_id } = req.query;
     const spotifyApi = setAccessToken(req);
-    const user = await spotifyApi.getUser(user_id);
-    res.status(200).json({ displayName: user.body.display_name });
+    const { body } = await spotifyApi.getUser(user_id);
+    res.status(200).json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -42,8 +42,7 @@ export const getUserPosts = async (req, res) => {
     ]);
 
     const nextPage = (parsed_page_number + 1) * parsed_page_size < postRatings[0].total ? parsed_page_number + 1 : undefined;
-
-    res.status(200).json({ data: postRatings[0].data, nextPage });
+    res.status(200).json({ data: postRatings[0].data, nextPage, total: postRatings[0].total });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
