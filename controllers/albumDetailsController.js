@@ -158,7 +158,7 @@ export const getUsersProfile = async (req, res) => {
   try {
     const spotifyApi = setAccessToken(req);
     const data = await spotifyApi.getUser(req.query.user_id);
-    res.status(200).json({ id: data.body.id, display_name: data.body.display_name, image_url: data.body.images[0]?.url });
+    res.status(200).json({ id: data.body.id, displayName: data.body.display_name, imageUrl: data.body.images[0]?.url });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -225,8 +225,8 @@ const getSingleUserLike = async (spotifyApi, postLike) => {
     const { body } = await spotifyApi.getUser(postLike.user_id);
     return {
       id: body?.id || null,
-      display_name: body?.display_name || null,
-      image_url: body?.images[0]?.url || null,
+      displayName: body?.display_name || null,
+      imageUrl: body?.images[0]?.url || null,
       like_id: postLike._id,
       createdAt: postLike.createdAt,
     };
@@ -234,8 +234,8 @@ const getSingleUserLike = async (spotifyApi, postLike) => {
     if (error.body.error.status === 404) {
       return {
         id: null,
-        display_name: "User not found",
-        image_url: null,
+        displayName: "User not found",
+        imageUrl: null,
         like_id: postLike._id,
         createdAt: postLike.createdAt,
       };

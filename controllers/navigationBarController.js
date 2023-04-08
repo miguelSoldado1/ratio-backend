@@ -4,7 +4,7 @@ export const getMe = async (req, res) => {
   try {
     const spotifyApi = setAccessToken(req);
     const { body } = await spotifyApi.getMe();
-    res.status(200).json({ id: body.id, display_name: body.display_name, image_url: body.images[0]?.url });
+    res.status(200).json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
