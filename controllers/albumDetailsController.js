@@ -18,7 +18,8 @@ export const getAlbum = async (req, res) => {
     }
     return res.status(200).json(getAlbumDataAndTracks(data?.body));
   } catch (error) {
-    res.status(error.statusCode).json(error.message);
+    console.log(error);
+    res.status(error?.statusCode).json(error?.message);
   }
 };
 
