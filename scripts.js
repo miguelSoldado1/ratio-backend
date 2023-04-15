@@ -95,10 +95,14 @@ export const mapAlbum = (album) => {
 };
 
 export const setAccessToken = (request) => {
-  const authorization = request?.headers?.authorization;
-  if (!authorization) throw new Error("Invalid access token");
-  var [bearer, accessToken] = authorization.split(" ");
-  if (bearer !== "Bearer" || !accessToken) throw new Error("Invalid access token");
+  if (!request || !request.headers || !request.headers.authorization) {
+    throw { message: "Invalid request object", statusCode: 400 };
+  }
+  const authorization = request.headers.authorization;
+  const [bearer, accessToken] = authorization.split(" ");
+  if (bearer !== "Bearer" || !accessToken) {
+    throw { message: "Invalid access token", statusCode: 401 };
+  }
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(accessToken);
   return spotifyApi;
