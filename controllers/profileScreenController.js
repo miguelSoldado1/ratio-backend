@@ -25,6 +25,14 @@ export const getUserPosts = async (req, res) => {
     const postRatings = await postRating.aggregate([
       { $match: { user_id: user_id } },
       {
+        $group: {
+          _id: "$_id",
+          album_id: { $last: "$album_id" },
+          rating: { $last: "$rating" },
+          createdAt: { $last: "$createdAt" },
+        },
+      },
+      {
         $facet: {
           data: [{ $sort: filter }, { $skip: parsed_page_number * parsed_page_size }, { $limit: parsed_page_size }],
           total: [{ $count: "total" }],
