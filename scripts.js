@@ -1,3 +1,5 @@
+import SpotifyWebApi from "spotify-web-api-node";
+
 const ALBUM_TYPE_FILTER = "album";
 
 //can't use a forEach because of the need of break condition
@@ -92,11 +94,18 @@ export const mapAlbum = (album) => {
   };
 };
 
-export const getAccessToken = (req) => {
-  if (req?.headers?.authorization) {
-    var headersSplit = req.headers.authorization.split(" ");
+export const setAccessToken = (request) => {
+  if (!request || !request.headers || !request.headers.authorization) {
+    throw { message: "Invalid request object", statusCode: 400 };
   }
-  return headersSplit && headersSplit[1] ? headersSplit[1] : undefined;
+  const authorization = request.headers.authorization;
+  const [bearer, accessToken] = authorization.split(" ");
+  if (bearer !== "Bearer" || !accessToken) {
+    throw { message: "Invalid access token", statusCode: 401 };
+  }
+  const spotifyApi = new SpotifyWebApi();
+  spotifyApi.setAccessToken(accessToken);
+  return spotifyApi;
 };
 
 export const handleFilters = (filter) => {

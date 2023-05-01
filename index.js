@@ -17,7 +17,7 @@ app
   .use(bodyParser.urlencoded({ limit: "30mb", extended: true }))
   .use(cors());
 
-const { PORT, CLIENT_ID, CLIENT_SECRET, BACK_END_URL, SCOPES, CONNECTION_URL } = process.env;
+const { PORT, CLIENT_ID, CLIENT_SECRET, BACK_END_URL, SCOPES, CONNECTION_URL, FRONT_END_URL } = process.env;
 
 /* START AUTHORIZATION BOILERPLATE CODE */
 
@@ -49,20 +49,28 @@ app.get("/callback", (req, res) => {
     }
 
     spotifyApi.authorizationCodeGrant(code).then((data) => {
-      const access_token = data.body["access_token"];
-      const expires_in = data.body["expires_in"];
-      res.redirect(`${process.env.FRONT_END_URL}?access_token=${access_token}&&expires_in=${expires_in}&&redirect=${state ? state : ""}`);
+      const { access_token, expires_in, refresh_token } = data.body;
+      const newUrl = new URL(FRONT_END_URL);
+      newUrl.searchParams.set("access_token", access_token);
+      newUrl.searchParams.set("expires_in", expires_in);
+      newUrl.searchParams.set("refresh_token", refresh_token);
+      state && newUrl.searchParams.set("redirect", state);
+
+      res.redirect(newUrl);
     });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
 });
 
-app.get("/refresh", (req, res) => {
-  spotifyApi.setRefreshToken(req.query.refreshToken);
-  spotifyApi.refreshAccessToken().then((data) => {
-    res.status(200).json({ accessToken: data.body["access_token"], expiresIn: data.body["expires_in"], refreshToken: data.body["refresh_token"] });
-  });
+app.get("/refresh", async (req, res) => {
+  try {
+    spotifyApi.setRefreshToken(req.query.refresh_token);
+    const data = await spotifyApi.refreshAccessToken();
+    res.status(200).json({ access_token: data.body["access_token"], expires_in: data.body["expires_in"] });
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
 });
 
 /* END AUTHORIZATION BOILERPLATE CODE */

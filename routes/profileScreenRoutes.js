@@ -1,8 +1,8 @@
 import express from "express";
-import { getUserPosts, getUserDisplayName } from "../controllers/profileScreenController.js";
+import { getUserPosts, getUserProfile } from "../controllers/profileScreenController.js";
 
 const router = express.Router();
 
 router.get("/getUserPosts", getUserPosts);
-router.get("/getUserDisplayName", getUserDisplayName);
+router.get("/getUserProfile", getUserProfile);
 export default router;
