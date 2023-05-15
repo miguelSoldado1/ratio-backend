@@ -137,7 +137,7 @@ export const createPost = async (req, res) => {
 export const deletePost = async (req, res) => {
   try {
     const data = await getUser(req);
-    const { _id, album_id } = req.body;
+    const { _id } = req.body;
     const rating = await postRating.findOneAndDelete({ _id: mongoose.Types.ObjectId(_id), user_id: data.body.id });
     if (!rating) {
       return res.status(404).send("No post with specified values.");
