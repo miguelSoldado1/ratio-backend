@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 
-dotenv.config();
+const COLLECTION_NAME = process.env.NODE_ENV === "production" ? "postlike" : "postlike_dev";
 
 const postLikeSchema = mongoose.Schema(
   {
@@ -12,9 +11,4 @@ const postLikeSchema = mongoose.Schema(
   { versionKey: false }
 );
 
-const postLike =
-  process.env.NODE_ENV === "production"
-    ? mongoose.model("PostLike", postLikeSchema, "postlike")
-    : mongoose.model("PostLike", postLikeSchema, "postlike_dev");
-
-export default postLike;
+export default mongoose.model("PostLike", postLikeSchema, COLLECTION_NAME);

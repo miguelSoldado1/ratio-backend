@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
 import spotifyApi from "../spotifyApiWrapper.js";
 
-dotenv.config();
 const { SCOPES, FRONT_END_URL } = process.env;
 
 export const login = (req, res) => {

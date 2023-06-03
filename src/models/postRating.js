@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 
-dotenv.config();
+const COLLECTION_NAME = process.env.NODE_ENV === "production" ? "postratings" : "postratings_dev";
 
 const postSchema = mongoose.Schema(
   {
@@ -14,9 +13,4 @@ const postSchema = mongoose.Schema(
   { versionKey: false }
 );
 
-const postRating =
-  process.env.NODE_ENV === "production"
-    ? mongoose.model("PostRating", postSchema, "postratings")
-    : mongoose.model("PostRating", postSchema, "postratings_dev");
-
-export default postRating;
+export default mongoose.model("PostRating", postSchema, COLLECTION_NAME);
