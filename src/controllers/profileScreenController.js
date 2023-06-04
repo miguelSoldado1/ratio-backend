@@ -10,13 +10,7 @@ export const getUserProfile = async (req, res) => {
     const { user_id } = req.query;
     const spotifyApi = setAccessToken(req);
     const { body } = await spotifyApi.getUser(user_id);
-
-    const folower_id = (await spotifyApi.getMe()).body.id;
-    const following = await follow.findOne({ folower_id: folower_id, following_id: user_id });
-    const numberOfFollowers = await follow.countDocuments({ following_id: user_id });
-    res
-      .status(200)
-      .json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url, isFollowing: !!following, followers: numberOfFollowers });
+    res.status(200).json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -80,6 +74,19 @@ export const unfollowUser = async (req, res) => {
     if (following.deletedCount <= 0) return res.status(409).send({ message: "not following this user" });
     const numberOfFollowers = await follow.countDocuments({ following_id });
     res.status(200).json({ message: "user unfollowed successfully.", numberOfFollowers });
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
+};
+
+export const getFollowingInfo = async (req, res) => {
+  try {
+    const { following_id } = req.query;
+    const data = await getUser(req);
+    const folower_id = data.body.id;
+    const following = await follow.findOne({ folower_id, following_id });
+    const numberOfFollowers = await follow.countDocuments({ following_id });
+    res.status(200).json({ following: !!following, followers: numberOfFollowers });
   } catch (error) {
     res.status(error.statusCode ?? 500).json(error.message);
   }
