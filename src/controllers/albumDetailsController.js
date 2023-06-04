@@ -1,7 +1,7 @@
 import { mongoose } from "mongoose";
 import postRating from "../models/postRating.js";
 import postLike from "../models/postLike.js";
-import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken } from "../scripts.js";
+import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 6;
 const RELATED_RAIL_MAX_SIZE = 10;
@@ -148,11 +148,6 @@ export const deletePost = async (req, res) => {
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
-};
-
-const getUser = async (req) => {
-  const spotifyApi = setAccessToken(req);
-  return await spotifyApi.getMe();
 };
 
 export const getUsersProfile = async (req, res) => {

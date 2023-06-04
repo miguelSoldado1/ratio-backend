@@ -119,3 +119,8 @@ export const handleFilters = (filter) => {
       return { createdAt: -1, album_id: 1 };
   }
 };
+
+export const getUser = async (req) => {
+  const spotifyApi = setAccessToken(req);
+  return await spotifyApi.getMe();
+};

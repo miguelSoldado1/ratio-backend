@@ -1,5 +1,6 @@
+import follow from "../models/follow.js";
 import postRating from "../models/postRating.js";
-import { handleFilters, setAccessToken } from "../scripts.js";
+import { getUser, handleFilters, setAccessToken } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 8;
 const DEFAULT_PAGE_NUMBER = 0;
@@ -9,7 +10,13 @@ export const getUserProfile = async (req, res) => {
     const { user_id } = req.query;
     const spotifyApi = setAccessToken(req);
     const { body } = await spotifyApi.getUser(user_id);
-    res.status(200).json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url });
+
+    const folower_id = (await spotifyApi.getMe()).body.id;
+    const following = await follow.findOne({ folower_id: folower_id, following_id: user_id });
+    const numberOfFollowers = await follow.countDocuments({ following_id: user_id });
+    res
+      .status(200)
+      .json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url, isFollowing: !!following, followers: numberOfFollowers });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -45,5 +52,35 @@ export const getUserPosts = async (req, res) => {
     res.status(200).json({ data: postRatings[0].data, nextPage, total: postRatings[0].total });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
+  }
+};
+
+export const followUser = async (req, res) => {
+  try {
+    const { following_id } = req.query;
+    const data = await getUser(req);
+    const userId = data.body.id;
+    const following = await follow.findOne({ folower_id: userId, following_id: following_id });
+    if (following) return res.status(409).send({ message: "Already following user." });
+    const followData = { follower_id: userId, following_id: following_id, createdAt: new Date() };
+    await new follow(followData).save();
+    const numberOfFollowers = await follow.countDocuments({ following_id });
+    res.status(200).json({ message: "user followed successfully.", numberOfFollowers });
+  } catch (error) {
+    res.status(error.statusCode ?? 500).json(error.message);
+  }
+};
+
+export const unfollowUser = async (req, res) => {
+  try {
+    const { following_id } = req.query;
+    const data = await getUser(req);
+    const userId = data.body.id;
+    const following = await follow.deleteOne({ folower_id: userId, following_id: following_id });
+    if (following.deletedCount <= 0) return res.status(409).send({ message: "not following this user" });
+    const numberOfFollowers = await follow.countDocuments({ following_id });
+    res.status(200).json({ message: "user unfollowed successfully.", numberOfFollowers });
+  } catch (error) {
+    res.status(error.statusCode ?? 500).json(error.message);
   }
 };
