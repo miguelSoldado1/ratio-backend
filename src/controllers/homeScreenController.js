@@ -1,4 +1,4 @@
-import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum } from "../scripts.js";
+import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, getUser } from "../scripts.js";
 import postRating from "../models/postRating.js";
 
 const WEEKS_FOR_LATEST_POSTS = 2;
@@ -65,7 +65,7 @@ export const getMyTopArtists = async (req, res) => {
     const trackIds = topArtistsData.body.items.map((t) => t.id);
     const artistAlbumPromises = trackIds.map(async (id) => await spotifyApi.getArtistAlbums(id, { limit: 1 }));
     const artistAlbumData = await Promise.all(artistAlbumPromises);
-    res.status(200).json(handleComplicated(artistAlbumData));
+    res.status(200).json(handleAlbumData(artistAlbumData));
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
@@ -82,6 +82,17 @@ export const getMyReleaseRadar = async (req, res) => {
   }
 };
 
+export const getFollowingRatings = async (req, res) => {
+  try {
+    const data = await getUser(req);
+    const user_id = data.body.id;
+    console.log(user_id);
+    res.status(200).json({});
+  } catch (error) {
+    res.status(error.statusCode).json(error.message);
+  }
+};
+
 const fetchAlbum = async (albumId, spotifyApi) => {
   try {
     const data = await spotifyApi.getAlbum(albumId);
@@ -91,7 +102,7 @@ const fetchAlbum = async (albumId, spotifyApi) => {
   }
 };
 
-const handleComplicated = (albums) => {
+const handleAlbumData = (albums) => {
   const result = [];
   albums.forEach((data) => {
     data.body.items.forEach((album) => {
