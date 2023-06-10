@@ -94,6 +94,14 @@ export const mapAlbum = (album) => {
   };
 };
 
+export const mapUser = (user) => {
+  return {
+    id: user?.id || "",
+    displayName: user?.display_name || "",
+    imageUrl: user?.images[0]?.url || "",
+  };
+};
+
 export const setAccessToken = (request) => {
   if (!request || !request.headers || !request.headers.authorization) {
     throw { message: "Invalid request object", statusCode: 400 };
