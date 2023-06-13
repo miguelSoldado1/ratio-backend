@@ -94,12 +94,20 @@ export const getFollowingRatings = async (req, res) => {
     const cursor = req.query?.cursor ?? null;
 
     const pipeline = [
-      // Match the posts made by the users the current user is following
       {
         $match: {
-          user_id: {
-            $in: await follow.find({ follower_id: user_id }).distinct("following_id"),
-          },
+          $or: [
+            // Match posts from users the current user is following
+            {
+              user_id: {
+                $in: await follow.find({ follower_id: user_id }).distinct("following_id"),
+              },
+            },
+            // Match posts from the given user
+            {
+              user_id: user_id,
+            },
+          ],
           _id: {
             $lt: cursor ? mongoose.Types.ObjectId(cursor) : mongoose.Types.ObjectId(),
           },
@@ -126,7 +134,18 @@ export const getFollowingRatings = async (req, res) => {
         $addFields: {
           likes: { $size: `$${POST_LIKES}` },
           liked_by_user: {
-            $gt: [{ $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } }, 0],
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: `$${POST_LIKES}`,
+                    as: "like",
+                    cond: { $eq: ["$$like.user_id", user_id] },
+                  },
+                },
+              },
+              0,
+            ],
           },
         },
       },
