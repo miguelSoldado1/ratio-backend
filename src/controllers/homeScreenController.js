@@ -154,7 +154,7 @@ export const getFollowingRatings = async (req, res) => {
     const postRatings = await postRating.aggregate(pipeline);
     const result = await handlePostsSpotifyCalls(postRatings, spotifyApi);
 
-    res.status(200).json(result);
+    res.status(200).json({ data: result, cursor: result.length === LIMIT_OF_RESULTS ? result[result.length - 1]._id : null });
   } catch (error) {
     res.status(error.statusCode ?? 500).json(error.message);
   }
