@@ -1,5 +1,5 @@
 import { follow, postRating } from "../models";
-import { getUser, handleFilters, setAccessToken } from "../scripts.js";
+import { getUser, handleFilters, setAccessToken } from "../scripts";
 
 const DEFAULT_PAGE_SIZE = 8;
 const DEFAULT_PAGE_NUMBER = 0;

@@ -1,6 +1,6 @@
 import { mongoose } from "mongoose";
 import { postLike, postRating } from "../models";
-import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser } from "../scripts.js";
+import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser } from "../scripts";
 
 const DEFAULT_PAGE_SIZE = 6;
 const RELATED_RAIL_MAX_SIZE = 10;

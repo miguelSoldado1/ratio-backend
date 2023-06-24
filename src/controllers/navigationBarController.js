@@ -1,4 +1,4 @@
-import { getAlbumSearch, setAccessToken } from "../scripts.js";
+import { getAlbumSearch, setAccessToken } from "../scripts";
 
 export const getMe = async (req, res) => {
   try {

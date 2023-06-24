@@ -1,9 +1,11 @@
+import { Request } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
+import type { Album, User, Track, Filter } from "./types";
 
 const ALBUM_TYPE_FILTER = "album";
 
 //can't use a forEach because of the need of break condition
-export const getUserRecentAlbums = (items, limit) => {
+export const getUserRecentAlbums = (items: SpotifyApi.PlayHistoryObject[], limit: number) => {
   let counter = 0;
   const result = [];
   for (var item in items) {
@@ -18,7 +20,7 @@ export const getUserRecentAlbums = (items, limit) => {
 };
 
 //can't use a forEach because of the need of break condition
-export const getUserRecommendedAlbums = (items, limit) => {
+export const getUserRecommendedAlbums = (items: SpotifyApi.AlbumObjectSimplified[], limit: number) => {
   let counter = 0;
   const result = [];
   for (var item in items) {
@@ -32,7 +34,7 @@ export const getUserRecommendedAlbums = (items, limit) => {
   return result;
 };
 
-export const getAlbumSearch = (items) => {
+export const getAlbumSearch = (items: SpotifyApi.AlbumObjectSimplified[]) => {
   const result = [];
   for (var item in items) {
     const album = items[item];
@@ -43,7 +45,7 @@ export const getAlbumSearch = (items) => {
   return result;
 };
 
-export const mapArtistAlbums = (items, albumId, limit) => {
+export const mapArtistAlbums = (items: SpotifyApi.AlbumObjectSimplified[], albumId: string, limit: number) => {
   const result = [];
   for (var item in items) {
     const album = items[item];
@@ -61,15 +63,13 @@ export const mapArtistAlbums = (items, albumId, limit) => {
   return result;
 };
 
-export const getAlbumDataAndTracks = (album) => {
+export const getAlbumDataAndTracks = (album: SpotifyApi.SingleAlbumResponse): Album => {
   var result = mapAlbum(album);
-  result.tracks = album.tracks.items.map((track) => {
-    return getTrack(track);
-  });
+  result.tracks = album.tracks.items.map((track) => getTrack(track));
   return result;
 };
 
-const getTrack = (track) => {
+const getTrack = (track: SpotifyApi.TrackObjectSimplified): Track => {
   return {
     id: track.id,
     name: track.name,
@@ -81,7 +81,7 @@ const getTrack = (track) => {
   };
 };
 
-export const mapAlbum = (album) => {
+export const mapAlbum = (album: SpotifyApi.AlbumObjectSimplified): Album => {
   return {
     name: album.name || "",
     album_uri: album.uri,
@@ -89,20 +89,20 @@ export const mapAlbum = (album) => {
     artist_id: album.artists[0].id || "",
     id: album.id || "",
     release_date: album.release_date || "",
-    image: album.images[1].url || "",
+    image: album.images[1].url || null,
     release_date_precision: album.release_date_precision,
   };
 };
 
-export const mapUser = (user) => {
+export const mapUser = (user: SpotifyApi.UserProfileResponse): User => {
   return {
     id: user?.id ?? "",
     displayName: user?.display_name ?? "",
-    imageUrl: user?.images[0]?.url ?? null,
+    imageUrl: user.images ? user.images[0].url : null,
   };
 };
 
-export const setAccessToken = (request) => {
+export const setAccessToken = (request: Request): SpotifyWebApi => {
   if (!request || !request.headers || !request.headers.authorization) {
     throw { message: "Invalid request object", statusCode: 400 };
   }
@@ -116,7 +116,7 @@ export const setAccessToken = (request) => {
   return spotifyApi;
 };
 
-export const handleFilters = (filter) => {
+export const handleFilters = (filter: string): Filter => {
   switch (filter) {
     case "oldest":
       return { createdAt: 1, album_id: -1 };
@@ -128,7 +128,7 @@ export const handleFilters = (filter) => {
   }
 };
 
-export const getUser = async (req) => {
+export const getUser = async (req: Request) => {
   const spotifyApi = setAccessToken(req);
   return await spotifyApi.getMe();
 };

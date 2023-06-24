@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts.js";
+import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
 
 const WEEKS_FOR_LATEST_POSTS = 2;
