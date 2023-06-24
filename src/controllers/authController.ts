@@ -2,6 +2,7 @@ import spotifyApi from "../spotifyApiWrapper";
 import config from "../../config";
 import { CustomError } from "../customError";
 import type { NextFunction, Request, Response } from "express";
+import { follow } from "../models";
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
   try {

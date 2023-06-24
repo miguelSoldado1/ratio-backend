@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import express, { type Request, type Response } from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -8,7 +8,7 @@ import { authRoutes, albumDetailsRoutes, homeScreenRoutes, navigationBarRoutes, 
 
 const app = express();
 
-const errorHandler = (error: Error, req: Request, res: Response, next: NextFunction) => {
+const errorHandler = (error: Error, req: Request, res: Response) => {
   let statusCode = 500; // Default status code for internal server errors
 
   if (error instanceof CustomError) {

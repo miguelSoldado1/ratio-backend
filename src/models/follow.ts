@@ -1,8 +1,15 @@
-import mongoose from "mongoose";
+import { Schema, model } from "mongoose";
 
 const COLLECTION_NAME = process.env.NODE_ENV === "production" ? "follow" : "follow_dev";
 
-const postSchema = mongoose.Schema(
+type Post = {
+  _id: Schema.Types.ObjectId;
+  follower_id: string;
+  following_id: string;
+  createdAt: Date;
+};
+
+const postSchema: Schema = new Schema<Post>(
   {
     follower_id: { type: String, required: true },
     following_id: { type: String, required: true },
@@ -11,4 +18,4 @@ const postSchema = mongoose.Schema(
   { versionKey: false }
 );
 
-export default mongoose.model("Follow", postSchema, COLLECTION_NAME);
+export default model<Post>("Follow", postSchema, COLLECTION_NAME);

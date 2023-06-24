@@ -1,8 +1,6 @@
-import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts.js";
 import mongoose from "mongoose";
-import postRating from "../models/postRating.js";
-import follow from "../models/follow.js";
-import postLike from "../models/postLike.js";
+import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts.js";
+import { follow, postLike, postRating } from "../models";
 
 const WEEKS_FOR_LATEST_POSTS = 2;
 const LIMIT_OF_RESULTS = 12;

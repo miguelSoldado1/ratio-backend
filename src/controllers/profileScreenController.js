@@ -1,5 +1,4 @@
-import follow from "../models/follow.js";
-import postRating from "../models/postRating.js";
+import { follow, postRating } from "../models";
 import { getUser, handleFilters, setAccessToken } from "../scripts.js";
 
 const DEFAULT_PAGE_SIZE = 8;
