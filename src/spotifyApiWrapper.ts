@@ -1,8 +1,7 @@
 import SpotifyWebApi from "spotify-web-api-node";
-import dotenv from "dotenv";
+import config from "../config";
 
-dotenv.config();
-const { CLIENT_ID, CLIENT_SECRET, BACK_END_URL } = process.env;
+const { CLIENT_ID, CLIENT_SECRET, BACK_END_URL } = config;
 
 export const spotifyApi = new SpotifyWebApi({
   clientId: CLIENT_ID,
