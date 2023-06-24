@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
+import config from "../../config";
 
-const COLLECTION_NAME = process.env.NODE_ENV === "production" ? "postratings" : "postratings_dev";
+const COLLECTION_NAME = config.NODE_ENV === "production" ? "postratings" : "postratings_dev";
 
 type PostRating = {
   _id: Schema.Types.ObjectId;

@@ -1,6 +1,7 @@
 import { Schema, Types, model } from "mongoose";
+import config from "../../config";
 
-const COLLECTION_NAME = process.env.NODE_ENV === "production" ? "postlike" : "postlike_dev";
+const COLLECTION_NAME = config.NODE_ENV === "production" ? "postlike" : "postlike_dev";
 
 type PostLike = {
   _id: Schema.Types.ObjectId;
