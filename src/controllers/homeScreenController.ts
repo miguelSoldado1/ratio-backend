@@ -1,13 +1,13 @@
 import { PipelineStage, Types } from "mongoose";
+import SpotifyWebApi from "spotify-web-api-node";
 import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
-import type { NextFunction, Request, Response } from "express";
 import { CustomError } from "../customError";
-import SpotifyWebApi from "spotify-web-api-node";
+import type { NextFunction, Request, Response } from "express";
 import type { Album, FeedPost, Post } from "../types";
 
-const WEEKS_FOR_LATEST_POSTS = 12;
-const LIMIT_OF_RESULTS = 2;
+const WEEKS_FOR_LATEST_POSTS = 2;
+const LIMIT_OF_RESULTS = 12;
 const POST_LIKES = "likes";
 
 export const getRecentlyListened = async (req: Request, res: Response, next: NextFunction) => {

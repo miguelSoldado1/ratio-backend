@@ -49,3 +49,11 @@ export interface FeedPost extends Post {
   user: User;
   album: Album;
 }
+
+export type UserLike = {
+  id: string;
+  displayName: string;
+  imageUrl: string | null;
+  like_id: Types.ObjectId;
+  createdAt: Date;
+};
