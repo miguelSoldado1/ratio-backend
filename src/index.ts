@@ -8,7 +8,7 @@ import { authRoutes, albumDetailsRoutes, homeScreenRoutes, navigationBarRoutes, 
 
 const app = express();
 
-const errorHandler = (error: Error, req: Request, res: Response) => {
+const errorHandler = (error: Error | CustomError, req: Request, res: Response) => {
   let statusCode = 500; // Default status code for internal server errors
 
   if (error instanceof CustomError) {

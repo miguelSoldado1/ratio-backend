@@ -5,11 +5,12 @@ import type { NextFunction, Request, Response } from "express";
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (typeof req.query.pathname !== "string") {
+    const pathname = req.query.pathname;
+    if (typeof pathname !== "string") {
       throw new CustomError("Something went wrong!", 500);
     }
 
-    const redirectUrl = spotifyApi.createAuthorizeURL(config.SCOPES.split(","), req.query.pathname, false);
+    const redirectUrl = spotifyApi.createAuthorizeURL(config.SCOPES.split(","), pathname, false);
     res.redirect(redirectUrl);
   } catch (error) {
     return next(error);

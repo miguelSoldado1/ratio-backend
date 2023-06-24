@@ -116,7 +116,7 @@ export const setAccessToken = (request: Request): SpotifyWebApi => {
   return spotifyApi;
 };
 
-export const handleFilters = (filter: string): Filter => {
+export const handleFilters = (filter: string | undefined): Filter => {
   switch (filter) {
     case "oldest":
       return { createdAt: 1, album_id: -1 };

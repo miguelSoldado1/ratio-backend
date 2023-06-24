@@ -1,5 +1,5 @@
 import express from "express";
-import { followUser, getFollowingInfo, getUserPosts, getUserProfile, unfollowUser } from "../controllers/profileScreenController.js";
+import { followUser, getFollowingInfo, getUserPosts, getUserProfile, unfollowUser } from "../controllers/profileScreenController";
 
 const router = express.Router();
 
