@@ -96,9 +96,9 @@ export const mapAlbum = (album) => {
 
 export const mapUser = (user) => {
   return {
-    id: user?.id || "",
-    displayName: user?.display_name || "",
-    imageUrl: user?.images[0]?.url || "",
+    id: user?.id ?? "",
+    displayName: user?.display_name ?? "",
+    imageUrl: user?.images[0]?.url ?? null,
   };
 };
 
