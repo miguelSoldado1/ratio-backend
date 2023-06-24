@@ -3,7 +3,7 @@ import config from "../../config";
 
 const COLLECTION_NAME = config.NODE_ENV === "production" ? "postlike" : "postlike_dev";
 
-type PostLike = {
+export type PostLike = {
   _id: Schema.Types.ObjectId;
   user_id: string;
   post_id: Schema.Types.ObjectId;

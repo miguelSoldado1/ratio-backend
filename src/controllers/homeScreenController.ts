@@ -1,27 +1,31 @@
-import mongoose from "mongoose";
+import { PipelineStage, Types } from "mongoose";
 import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
+import type { NextFunction, Request, Response } from "express";
+import { CustomError } from "../customError";
+import SpotifyWebApi from "spotify-web-api-node";
+import type { Album, FeedPost, Post } from "../types";
 
-const WEEKS_FOR_LATEST_POSTS = 2;
-const LIMIT_OF_RESULTS = 12;
+const WEEKS_FOR_LATEST_POSTS = 12;
+const LIMIT_OF_RESULTS = 2;
 const POST_LIKES = "likes";
 
-export const getRecentlyListened = async (req, res) => {
+export const getRecentlyListened = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const spotifyApi = setAccessToken(req);
     const data = await spotifyApi.getMyRecentlyPlayedTracks({ limit: 50 });
     const result = getUserRecentAlbums(data.body.items, LIMIT_OF_RESULTS);
     res.status(200).json(result);
   } catch (error) {
-    res.status(error.statusCode).json(error.message);
+    return next(error);
   }
 };
 
-export const getLatestPosts = async (req, res) => {
+export const getLatestPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = req?.query?.user_id;
+    const userId = req.query.user_id;
     const spotifyApi = setAccessToken(req);
-    const postRatings = await postRating.aggregate([
+    const postRatings: { albumId: string }[] = await postRating.aggregate([
       {
         $match: {
           createdAt: {
@@ -52,46 +56,56 @@ export const getLatestPosts = async (req, res) => {
       {
         $limit: LIMIT_OF_RESULTS,
       },
+      { $project: { albumId: "$_id" } },
     ]);
-    const responses = await Promise.all(postRatings.map(({ _id }) => fetchAlbum(_id, spotifyApi)));
+
+    const responses = await Promise.all(postRatings.map(({ albumId }) => fetchAlbum(albumId, spotifyApi)));
     res.status(200).json(responses);
   } catch (error) {
-    res.status(error.statusCode).json(error.message);
+    return next(error);
   }
 };
 
-export const getMyTopArtists = async (req, res) => {
+export const getMyTopArtists = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const spotifyApi = setAccessToken(req);
     const topArtistsData = await spotifyApi.getMyTopArtists({ limit: LIMIT_OF_RESULTS, time_range: "long_term" });
-    const trackIds = topArtistsData.body.items.map((t) => t.id);
-    const artistAlbumPromises = trackIds.map(async (id) => await spotifyApi.getArtistAlbums(id, { limit: 1 }));
+    const artistIds = topArtistsData.body.items.map((artist) => artist.id);
+
+    const artistAlbumPromises = artistIds.map(async (id) => {
+      const albumsData = await spotifyApi.getArtistAlbums(id, { limit: 1 });
+      return albumsData.body.items;
+    });
+
     const artistAlbumData = await Promise.all(artistAlbumPromises);
-    res.status(200).json(handleAlbumData(artistAlbumData));
+    const albums = artistAlbumData.flatMap((items) => items);
+    const result = handleAlbumData(albums);
+
+    res.status(200).json(result);
   } catch (error) {
-    res.status(error.statusCode).json(error.message);
+    next(error);
   }
 };
 
-export const getMyReleaseRadar = async (req, res) => {
+export const getMyReleaseRadar = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const spotifyApi = setAccessToken(req);
     const data = await spotifyApi.getNewReleases({ limit: 50 });
     const result = getUserRecommendedAlbums(data.body.albums.items, LIMIT_OF_RESULTS);
     res.status(200).json(result);
   } catch (error) {
-    res.status(error.statusCode).json(error.message);
+    return next(error);
   }
 };
 
-export const getFollowingRatings = async (req, res) => {
+export const getFollowingRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const spotifyApi = setAccessToken(req);
     const data = await spotifyApi.getMe();
     const user_id = data.body.id;
     const cursor = req.query?.cursor ?? null;
 
-    const pipeline = [
+    const pipeline: PipelineStage[] = [
       {
         $match: {
           $or: [
@@ -107,7 +121,7 @@ export const getFollowingRatings = async (req, res) => {
             },
           ],
           _id: {
-            $lt: cursor ? mongoose.Types.ObjectId(cursor) : mongoose.Types.ObjectId(),
+            $lt: typeof cursor === "string" ? new Types.ObjectId(cursor) : new Types.ObjectId(),
           },
         },
       },
@@ -149,37 +163,35 @@ export const getFollowingRatings = async (req, res) => {
       },
     ];
 
-    const postRatings = await postRating.aggregate(pipeline);
+    const postRatings: Post[] = await postRating.aggregate(pipeline);
     const result = await handlePostsSpotifyCalls(postRatings, spotifyApi);
 
     res.status(200).json({ data: result, cursor: result.length === LIMIT_OF_RESULTS ? result[result.length - 1]._id : null });
   } catch (error) {
-    res.status(error.statusCode ?? 500).json(error.message);
+    next(error);
   }
 };
 
-const fetchAlbum = async (albumId, spotifyApi) => {
+const fetchAlbum = async (albumId: string, spotifyApi: SpotifyWebApi) => {
   try {
     const data = await spotifyApi.getAlbum(albumId);
     return mapAlbum(data.body);
   } catch (error) {
-    res.status(error.statusCode).json(error.message);
+    throw new CustomError("fetching album failed", 500);
   }
 };
 
-const handleAlbumData = (albums) => {
-  const result = [];
-  albums.forEach((data) => {
-    data.body.items.forEach((album) => {
-      if (album.album_type === "album") {
-        result.push(mapAlbum(album));
-      }
-    });
+const handleAlbumData = (albums: SpotifyApi.AlbumObjectSimplified[]): Album[] => {
+  const result: Album[] = [];
+  albums.forEach((album) => {
+    if (album.album_type === "album") {
+      result.push(mapAlbum(album));
+    }
   });
   return result;
 };
 
-const handlePostsSpotifyCalls = async (posts, spotifyApi) => {
+const handlePostsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi): Promise<FeedPost[]> => {
   const userDataPromises = posts.map((post) => spotifyApi.getUser(post.user_id));
   const albumDataPromises = posts.map((post) => spotifyApi.getAlbum(post.album_id));
 

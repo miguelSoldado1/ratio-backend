@@ -1,3 +1,5 @@
+import type { PostRating } from "./models/postRating";
+
 export type Album = {
   name: string;
   album_uri: string;
@@ -37,3 +39,13 @@ export type Filter = {
   album_id?: -1 | 1;
   rating?: -1 | 1;
 };
+
+export interface Post extends PostRating {
+  likes: number;
+  liked_by_user: boolean;
+}
+
+export interface FeedPost extends Post {
+  user: User;
+  album: Album;
+}

@@ -1,5 +1,5 @@
 import express from "express";
-import { getRecentlyListened, getLatestPosts, getMyTopArtists, getMyReleaseRadar, getFollowingRatings } from "../controllers/homeScreenController.js";
+import { getRecentlyListened, getLatestPosts, getMyTopArtists, getMyReleaseRadar, getFollowingRatings } from "../controllers/homeScreenController";
 
 const router = express.Router();
 

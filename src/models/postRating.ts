@@ -3,7 +3,7 @@ import config from "../../config";
 
 const COLLECTION_NAME = config.NODE_ENV === "production" ? "postratings" : "postratings_dev";
 
-type PostRating = {
+export type PostRating = {
   _id: Schema.Types.ObjectId;
   user_id: string;
   album_id: string;
