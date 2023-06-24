@@ -1,5 +1,5 @@
 import express from "express";
-import { getMe, searchForAlbum } from "../controllers/navigationBarController.js";
+import { getMe, searchForAlbum } from "../controllers/navigationBarController";
 
 const router = express.Router();
 

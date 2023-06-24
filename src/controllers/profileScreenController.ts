@@ -11,7 +11,7 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
     const user_id = req.query.user_id;
 
     if (typeof user_id !== "string") {
-      throw new CustomError("Something went wrong!", 500);
+      throw new CustomError("user id param missing!", 500);
     }
 
     const spotifyApi = setAccessToken(req);

@@ -34,8 +34,10 @@ export const getUserRecommendedAlbums = (items: SpotifyApi.AlbumObjectSimplified
   return result;
 };
 
-export const getAlbumSearch = (items: SpotifyApi.AlbumObjectSimplified[]) => {
-  const result = [];
+export const getAlbumSearch = (items: SpotifyApi.AlbumObjectSimplified[] | undefined): Album[] => {
+  const result: Album[] = [];
+  if (!items) return result;
+
   for (var item in items) {
     const album = items[item];
     if (album.album_type == ALBUM_TYPE_FILTER && result.findIndex((x) => x.id == album.id) < 0) {
@@ -45,8 +47,8 @@ export const getAlbumSearch = (items: SpotifyApi.AlbumObjectSimplified[]) => {
   return result;
 };
 
-export const mapArtistAlbums = (items: SpotifyApi.AlbumObjectSimplified[], albumId: string, limit: number) => {
-  const result = [];
+export const mapArtistAlbums = (items: SpotifyApi.AlbumObjectSimplified[], albumId: string, limit: number): Album[] => {
+  const result: Album[] = [];
   for (var item in items) {
     const album = items[item];
 

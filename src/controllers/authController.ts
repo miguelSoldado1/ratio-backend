@@ -7,7 +7,7 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
   try {
     const pathname = req.query.pathname;
     if (typeof pathname !== "string") {
-      throw new CustomError("Something went wrong!", 500);
+      throw new CustomError("pathname param missing!", 500);
     }
 
     const redirectUrl = spotifyApi.createAuthorizeURL(config.SCOPES.split(","), pathname, false);
@@ -45,7 +45,7 @@ export const callback = (req: Request, res: Response, next: NextFunction) => {
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (typeof req.query.refresh_token !== "string") {
-      throw new CustomError("Something went wrong!", 500);
+      throw new CustomError("refresh token param missing!", 500);
     }
 
     spotifyApi.setRefreshToken(req.query.refresh_token);
