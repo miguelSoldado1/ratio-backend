@@ -1,6 +1,7 @@
 import { Request } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
 import type { Album, User, Track, Filter } from "./types";
+import { CustomError } from "./customError";
 
 const ALBUM_TYPE_FILTER = "album";
 
@@ -106,12 +107,12 @@ export const mapUser = (user: SpotifyApi.UserProfileResponse): User => {
 
 export const setAccessToken = (request: Request): SpotifyWebApi => {
   if (!request || !request.headers || !request.headers.authorization) {
-    throw { message: "Invalid request object", statusCode: 400 };
+    throw new CustomError("Invalid request object", 400);
   }
   const authorization = request.headers.authorization;
   const [bearer, accessToken] = authorization.split(" ");
   if (bearer !== "Bearer" || !accessToken) {
-    throw { message: "Invalid access token", statusCode: 401 };
+    throw new CustomError("Invalid access token", 401);
   }
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(accessToken);
