@@ -101,7 +101,7 @@ export const mapUser = (user: SpotifyApi.UserProfileResponse): User => {
   return {
     id: user?.id ?? "",
     displayName: user?.display_name ?? "",
-    imageUrl: user.images ? user.images[0].url : null,
+    imageUrl: user.images ? user.images[0]?.url : null,
   };
 };
 
