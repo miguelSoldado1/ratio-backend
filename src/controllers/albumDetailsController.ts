@@ -266,7 +266,7 @@ const getSingleUserLike = async (spotifyApi: SpotifyWebApi, postLike: PostLike):
     return {
       id: user?.id ?? "",
       displayName: user?.display_name ?? "",
-      imageUrl: user?.images?.[0]?.url ?? "",
+      imageUrl: user?.images?.[0]?.url ?? null,
       like_id: postLike._id,
       createdAt: postLike.createdAt,
     };
