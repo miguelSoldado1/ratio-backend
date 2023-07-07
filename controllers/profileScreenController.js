@@ -9,7 +9,8 @@ export const getUserProfile = async (req, res) => {
     const { user_id } = req.query;
     const spotifyApi = setAccessToken(req);
     const { body } = await spotifyApi.getUser(user_id);
-    res.status(200).json({ id: body.id, displayName: body.display_name, imageUrl: body.images[0]?.url });
+    const images = body.images;
+    res.status(200).json({ id: body.id, displayName: body.display_name, imageUrl: images[images.length - 1]?.url });
   } catch (error) {
     res.status(error.statusCode).json(error.message);
   }
