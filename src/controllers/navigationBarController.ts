@@ -1,12 +1,12 @@
 import { CustomError } from "../customError";
-import { getAlbumSearch, mapUser, setAccessToken } from "../scripts";
+import { getAlbumSearch, mapSmallIconUser, setAccessToken } from "../scripts";
 import type { NextFunction, Request, Response } from "express";
 
 export const getMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const spotifyApi = setAccessToken(req);
     const userResponse = await spotifyApi.getMe();
-    const user = mapUser(userResponse.body);
+    const user = mapSmallIconUser(userResponse.body);
 
     res.status(200).json(user);
   } catch (error) {

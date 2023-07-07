@@ -1,7 +1,7 @@
 import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { postLike, postRating } from "../models";
-import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser, mapUser } from "../scripts";
+import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser, mapSmallIconUser } from "../scripts";
 import { CustomError } from "../customError";
 import type { NextFunction, Request, Response } from "express";
 import type { PostLike } from "../models/postLike";
@@ -181,7 +181,7 @@ export const getUsersProfile = async (req: Request, res: Response, next: NextFun
     const spotifyApi = setAccessToken(req);
 
     const userResponse = await spotifyApi.getUser(userId);
-    const user = mapUser(userResponse.body);
+    const user = mapSmallIconUser(userResponse.body);
 
     res.status(200).json(user);
   } catch (error) {

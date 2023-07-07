@@ -1,5 +1,5 @@
 import { follow, postRating } from "../models";
-import { getUser, handleFilters, mapUser, setAccessToken } from "../scripts";
+import { getUser, handleFilters, mapLargeIconUser, setAccessToken } from "../scripts";
 import { CustomError } from "../customError";
 import type { NextFunction, Request, Response } from "express";
 
@@ -16,7 +16,7 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
 
     const spotifyApi = setAccessToken(req);
     const userResponse = await spotifyApi.getUser(user_id);
-    res.status(200).json(mapUser(userResponse.body));
+    res.status(200).json(mapLargeIconUser(userResponse.body));
   } catch (error) {
     return next(error);
   }

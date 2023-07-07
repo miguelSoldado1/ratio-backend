@@ -1,6 +1,6 @@
 import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
-import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapUser } from "../scripts";
+import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapSmallIconUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
 import { CustomError } from "../customError";
 import type { NextFunction, Request, Response } from "express";
@@ -197,7 +197,7 @@ const handlePostsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi)
 
   const [userResults, albumResults] = await Promise.all([Promise.all(userDataPromises), Promise.all(albumDataPromises)]);
   return posts.map((post, index) => {
-    const user = mapUser(userResults[index].body);
+    const user = mapSmallIconUser(userResults[index].body);
     const album = mapAlbum(albumResults[index].body);
 
     return { ...post, user, album };
