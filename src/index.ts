@@ -4,8 +4,8 @@ import mongoose from "mongoose";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import config from "../config";
-import { errorHandlerMiddleware } from "./customError";
-import { authRoutes, albumDetailsRoutes, homeScreenRoutes, navigationBarRoutes, profileScreenRoutes } from "./routes";
+import routes from "./routes";
+import { errorHandler, notFound } from "./middleware";
 
 const app = express();
 
@@ -15,13 +15,9 @@ app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 
-app.use("/auth", authRoutes);
-app.use("/homeScreen", homeScreenRoutes);
-app.use("/albumDetails", albumDetailsRoutes);
-app.use("/navigationBar", navigationBarRoutes);
-app.use("/profileScreen", profileScreenRoutes);
-
-app.use(errorHandlerMiddleware);
+app.use(routes);
+app.use(errorHandler);
+app.use(notFound);
 
 mongoose
   .connect(config.CONNECTION_URL)

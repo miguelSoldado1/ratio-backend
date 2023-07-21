@@ -1,6 +1,6 @@
 import { follow, postRating } from "../models";
 import { getUser, handleFilters, mapLargeIconUser, setAccessToken } from "../scripts";
-import { CustomError } from "../customError";
+import { CustomError } from "../middleware";
 import type { NextFunction, Request, Response } from "express";
 
 const DEFAULT_PAGE_SIZE = 8;

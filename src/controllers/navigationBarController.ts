@@ -1,4 +1,4 @@
-import { CustomError } from "../customError";
+import { CustomError } from "../middleware";
 import { getAlbumSearch, mapSmallIconUser, setAccessToken } from "../scripts";
 import type { NextFunction, Request, Response } from "express";
 

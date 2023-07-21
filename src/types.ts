@@ -1,3 +1,4 @@
+import type { ObjectId } from "mongoose";
 import type { PostRating } from "./models/postRating";
 
 export type Album = {
@@ -54,6 +55,6 @@ export type UserLike = {
   id: string;
   displayName: string;
   imageUrl: string | null;
-  like_id: Types.ObjectId;
+  like_id: ObjectId;
   createdAt: Date;
 };

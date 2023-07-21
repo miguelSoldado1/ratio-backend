@@ -1,6 +1,6 @@
 import spotifyApi from "../spotifyApiWrapper";
 import config from "../../config";
-import { CustomError } from "../customError";
+import { CustomError } from "../middleware";
 import type { NextFunction, Request, Response } from "express";
 
 export const login = (req: Request, res: Response, next: NextFunction) => {

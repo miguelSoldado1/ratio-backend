@@ -9,12 +9,18 @@ export class CustomError extends Error {
   }
 }
 
-export const errorHandlerMiddleware = (error: Error | CustomError, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (error: Error | CustomError, req: Request, res: Response, next: NextFunction) => {
   let statusCode = 500; // Default status code for internal server errors
   if (error instanceof CustomError) {
     statusCode = error.statusCode; // Use custom status code if available
   }
 
   res.status(statusCode).send({ message: error.message, status: statusCode });
+  return next();
+};
+
+export const notFound = (req: Request, res: Response, next: NextFunction) => {
+  res.status(404);
+  res.status(404).send({ message: "Endpoint not found.", status: 404 });
   return next();
 };

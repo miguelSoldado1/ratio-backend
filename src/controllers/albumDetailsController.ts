@@ -2,7 +2,7 @@ import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser, mapSmallIconUser } from "../scripts";
-import { CustomError } from "../customError";
+import { CustomError } from "../middleware";
 import type { NextFunction, Request, Response } from "express";
 import type { PostLike } from "../models/postLike";
 import type { UserLike } from "../types";
