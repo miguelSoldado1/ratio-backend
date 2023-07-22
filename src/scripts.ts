@@ -92,7 +92,7 @@ export const mapAlbum = (album: SpotifyApi.AlbumObjectSimplified): Album => {
     artist_id: album.artists[0].id || "",
     id: album.id || "",
     release_date: album.release_date || "",
-    image: album.images[1].url || null,
+    image: album.images[1]?.url || null,
     release_date_precision: album.release_date_precision,
   };
 };
@@ -101,7 +101,7 @@ export const mapLargeIconUser = ({ id, display_name, images }: SpotifyApi.UserPr
   return {
     id: id ?? "",
     displayName: display_name ?? "",
-    imageUrl: images ? images[images.length - 1].url : null,
+    imageUrl: images ? images[images.length - 1]?.url : null,
   };
 };
 
@@ -109,7 +109,7 @@ export const mapSmallIconUser = ({ id, display_name, images }: SpotifyApi.UserPr
   return {
     id: id ?? "",
     displayName: display_name ?? "",
-    imageUrl: images ? images[0].url : null,
+    imageUrl: images ? images[0]?.url : null,
   };
 };
 
