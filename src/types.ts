@@ -51,6 +51,10 @@ export interface FeedPost extends Post {
   album: Album;
 }
 
+export interface UserProfilePost extends Post {
+  album: Album;
+}
+
 export type UserLike = {
   id: string;
   displayName: string;

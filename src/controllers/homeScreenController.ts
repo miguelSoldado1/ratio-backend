@@ -79,7 +79,7 @@ export const getMyTopArtists = async (req: Request, res: Response, next: NextFun
 
     const artistAlbumData = await Promise.all(artistAlbumPromises);
     const albums = artistAlbumData.flatMap((items) => items);
-    const result = handleAlbumData(albums);
+    const result = albums.filter((album) => album.album_type === "album").map((album) => mapAlbum(album));
 
     res.status(200).json(result);
   } catch (error) {
@@ -179,16 +179,6 @@ const fetchAlbum = async (albumId: string, spotifyApi: SpotifyWebApi) => {
   } catch (error) {
     throw new CustomError("fetching album failed", 500);
   }
-};
-
-const handleAlbumData = (albums: SpotifyApi.AlbumObjectSimplified[]): Album[] => {
-  const result: Album[] = [];
-  albums.forEach((album) => {
-    if (album.album_type === "album") {
-      result.push(mapAlbum(album));
-    }
-  });
-  return result;
 };
 
 const handlePostsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi): Promise<FeedPost[]> => {

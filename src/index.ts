@@ -10,14 +10,14 @@ import { errorHandler, notFound } from "./middleware";
 const app = express();
 
 // rate limiting for max 100 request per 5 minutes
-app.use(rateLimit({ windowMs: 5 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false }));
+if (config.NODE_ENV !== "local") app.use(rateLimit({ windowMs: 5 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false }));
 app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 
 app.use(routes);
 app.use(errorHandler);
-app.use(notFound);
+// app.use(notFound);
 
 mongoose
   .connect(config.CONNECTION_URL)
