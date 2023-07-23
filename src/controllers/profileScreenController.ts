@@ -65,6 +65,7 @@ export const getUserRatings = async (req: Request, res: Response, next: NextFunc
 
     if (typeof user_id !== "string") throw new CustomError("user id param missing!", 500);
     const spotifyApi = setAccessToken(req);
+    const user = await spotifyApi.getMe();
 
     let pipeline: PipelineStage[] = await handleCursorFilters(filter?.toString(), user_id, cursor?.toString());
     pipeline.push(
@@ -89,7 +90,7 @@ export const getUserRatings = async (req: Request, res: Response, next: NextFunc
                   $filter: {
                     input: `$${POST_LIKES}`,
                     as: "like",
-                    cond: { $eq: ["$$like.user_id", user_id] },
+                    cond: { $eq: ["$$like.user_id", user.body.id] },
                   },
                 },
               },
