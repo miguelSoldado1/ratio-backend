@@ -1,13 +1,13 @@
 import spotifyApi from "../spotifyApiWrapper";
 import config from "../../config";
-import { CustomError } from "../middleware";
+import { BadRequest, CustomError } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
   try {
     const pathname = req.query.pathname;
     if (typeof pathname !== "string") {
-      throw new CustomError("pathname param missing!", 500);
+      throw new BadRequest();
     }
 
     const redirectUrl = spotifyApi.createAuthorizeURL(config.SCOPES.split(","), pathname, false);
@@ -45,7 +45,7 @@ export const callback = (req: Request, res: Response, next: NextFunction) => {
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (typeof req.query.refresh_token !== "string") {
-      throw new CustomError("refresh token param missing!", 500);
+      throw new BadRequest();
     }
 
     spotifyApi.setRefreshToken(req.query.refresh_token);

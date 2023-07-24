@@ -2,9 +2,9 @@ import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapSmallIconUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
-import { CustomError } from "../middleware";
+import { CustomError } from "../errors";
 import type { NextFunction, Request, Response } from "express";
-import type { Album, FeedPost, Post } from "../types";
+import type { FeedPost, Post } from "../types";
 
 const WEEKS_FOR_LATEST_POSTS = 2;
 const LIMIT_OF_RESULTS = 12;

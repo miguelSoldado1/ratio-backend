@@ -1,7 +1,7 @@
 import { Request } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
+import { CustomError } from "./errors";
 import type { Album, User, Track, Filter } from "./types";
-import { CustomError } from "./middleware";
 
 const ALBUM_TYPE_FILTER = "album";
 

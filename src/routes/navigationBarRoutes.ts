@@ -1,9 +1,9 @@
 import express from "express";
-import { getMe, searchForAlbum } from "../controllers/navigationBarController";
+import * as navigationBarController from "../controllers/navigationBarController";
 
 const router = express.Router();
 
-router.get("/getMe", getMe);
-router.get("/searchForAlbum", searchForAlbum);
+router.get("/getMe", navigationBarController.getMe);
+router.get("/searchForAlbum", navigationBarController.searchForAlbum);
 
 export default router;

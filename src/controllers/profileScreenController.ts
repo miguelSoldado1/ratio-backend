@@ -1,13 +1,12 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
-import { getUser, handleFilters, mapAlbum, mapLargeIconUser, setAccessToken } from "../scripts";
-import { CustomError } from "../middleware";
+import { getUser, mapAlbum, mapLargeIconUser, setAccessToken } from "../scripts";
+import { BadRequest, CustomError } from "../errors";
 import { PipelineStage, Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
 import type { Post, UserProfilePost } from "../types";
 
 const DEFAULT_PAGE_SIZE = 8;
-const DEFAULT_PAGE_NUMBER = 0;
 const POST_LIKES = "likes";
 
 export const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
@@ -15,7 +14,7 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
     const user_id = req.query.user_id;
 
     if (typeof user_id !== "string") {
-      throw new CustomError("user id param missing!", 500);
+      throw new BadRequest();
     }
 
     const spotifyApi = setAccessToken(req);
@@ -25,49 +24,16 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
     return next(error);
   }
 };
-
-export const getUserPosts = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { user_id } = req.query;
-    const pageSize = req.query.page_size ? parseInt(req.query.page_size?.toString()) : DEFAULT_PAGE_SIZE;
-    const pageNumber = req.query.page_number ? parseInt(req.query.page_number.toString()) : DEFAULT_PAGE_NUMBER;
-    let filter = handleFilters(req.query.order?.toString());
-
-    const [postRatings] = await postRating.aggregate([
-      { $match: { user_id: user_id } },
-      {
-        $group: {
-          _id: "$_id",
-          album_id: { $last: "$album_id" },
-          rating: { $last: "$rating" },
-          createdAt: { $last: "$createdAt" },
-        },
-      },
-      {
-        $facet: {
-          data: [{ $sort: filter }, { $skip: pageNumber * pageSize }, { $limit: pageSize }],
-          total: [{ $count: "total" }],
-        },
-      },
-      { $addFields: { total: { $arrayElemAt: ["$total.total", 0] } } },
-    ]);
-
-    const nextPage = (pageNumber + 1) * pageSize < postRatings.total ? pageNumber + 1 : undefined;
-    res.status(200).json({ data: postRatings.data, nextPage, total: postRatings.total });
-  } catch (error) {
-    return next(error);
-  }
-};
-
 export const getUserRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { user_id, cursor, filter } = req.query;
+    if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined") || typeof filter !== "string")
+      throw new BadRequest();
 
-    if (typeof user_id !== "string") throw new CustomError("user id param missing!", 500);
     const spotifyApi = setAccessToken(req);
     const user = await spotifyApi.getMe();
 
-    let pipeline: PipelineStage[] = await handleCursorFilters(filter?.toString(), user_id, cursor?.toString());
+    let pipeline: PipelineStage[] = await handleCursorFilters(filter, user_id, cursor);
     pipeline.push(
       {
         $limit: DEFAULT_PAGE_SIZE,

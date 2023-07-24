@@ -1,10 +1,10 @@
 import express from "express";
-import { callback, login, refresh } from "../controllers/authController";
+import * as authController from "../controllers/authController";
 
 const router = express.Router();
 
-router.get("/login", login);
-router.get("/callback", callback);
-router.get("/refresh", refresh);
+router.get("/login", authController.login);
+router.get("/callback", authController.callback);
+router.get("/refresh", authController.refresh);
 
 export default router;

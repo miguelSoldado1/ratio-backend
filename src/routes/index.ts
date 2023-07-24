@@ -5,8 +5,6 @@ import navigationBarRoutes from "./navigationBarRoutes";
 import profileScreenRoutes from "./profileScreenRoutes";
 import { Router } from "express";
 
-// export { authRoutes, albumDetailsRoutes, homeScreenRoutes, navigationBarRoutes, profileScreenRoutes };
-
 const router = Router();
 
 router.use("/auth", authRoutes);

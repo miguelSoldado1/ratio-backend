@@ -2,7 +2,7 @@ import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser, mapSmallIconUser } from "../scripts";
-import { CustomError } from "../middleware";
+import { BadRequest, CustomError } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 import type { PostLike } from "../models/postLike";
 import type { UserLike } from "../types";
@@ -17,14 +17,14 @@ export const getAlbum = async (req: Request, res: Response, next: NextFunction) 
   try {
     const albumId = req.query.album_id;
     if (typeof albumId !== "string") {
-      throw new CustomError("album id param missing!", 500);
+      throw new BadRequest();
     }
 
     const spotifyApi = setAccessToken(req);
 
     const albumResponse = await spotifyApi.getAlbum(albumId);
     if (albumResponse.body.album_type !== ALBUM_TYPE_FILTER) {
-      throw new CustomError("not an album!", 404);
+      throw new CustomError("Not an album!", 404);
     }
 
     const album = getAlbumDataAndTracks(albumResponse.body);
@@ -121,12 +121,8 @@ export const getAverageAlbumRating = async (req: Request, res: Response, next: N
 export const getRelatedAlbums = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { artist_id, album_id } = req.query;
-    if (typeof album_id !== "string") {
-      throw new CustomError("album_id param missing!", 500);
-    }
-
-    if (typeof artist_id !== "string") {
-      throw new CustomError("album id param missing!", 500);
+    if (typeof album_id !== "string" || typeof artist_id !== "string") {
+      throw new BadRequest();
     }
 
     const spotifyApi = setAccessToken(req);
@@ -175,7 +171,7 @@ export const getUsersProfile = async (req: Request, res: Response, next: NextFun
   try {
     const userId = req.query.user_id;
     if (typeof userId !== "string") {
-      throw new CustomError("user id param missing!", 500);
+      throw new BadRequest();
     }
 
     const spotifyApi = setAccessToken(req);
@@ -226,7 +222,7 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
   try {
     const { post_id, cursor = undefined } = req.query;
     if (typeof post_id !== "string") {
-      throw new CustomError("post id param missing!", 500);
+      throw new BadRequest();
     }
 
     const pageSize = req.query.page_size ? parseInt(req.query.page_size?.toString()) : DEFAULT_PAGE_SIZE;

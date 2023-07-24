@@ -1,4 +1,4 @@
-import { CustomError } from "../middleware";
+import { BadRequest } from "../errors";
 import { getAlbumSearch, mapSmallIconUser, setAccessToken } from "../scripts";
 import type { NextFunction, Request, Response } from "express";
 
@@ -18,7 +18,7 @@ export const searchForAlbum = async (req: Request, res: Response, next: NextFunc
   try {
     const searchQuery = req.query.search_query;
     if (typeof searchQuery !== "string") {
-      throw new CustomError("search query param missing!", 500);
+      throw new BadRequest();
     }
 
     const spotifyApi = setAccessToken(req);

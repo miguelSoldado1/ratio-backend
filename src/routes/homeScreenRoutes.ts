@@ -1,12 +1,12 @@
 import express from "express";
-import { getRecentlyListened, getLatestPosts, getMyTopArtists, getMyReleaseRadar, getFollowingRatings } from "../controllers/homeScreenController";
+import * as homeScreen from "../controllers/homeScreenController";
 
 const router = express.Router();
 
-router.get("/getRecentlyListened", getRecentlyListened);
-router.get("/getLatestPosts", getLatestPosts);
-router.get("/getMyTopArtists", getMyTopArtists);
-router.get("/getMyReleaseRadar", getMyReleaseRadar);
-router.get("/getFollowingRatings", getFollowingRatings);
+router.get("/getRecentlyListened", homeScreen.getRecentlyListened);
+router.get("/getLatestPosts", homeScreen.getLatestPosts);
+router.get("/getMyTopArtists", homeScreen.getMyTopArtists);
+router.get("/getMyReleaseRadar", homeScreen.getMyReleaseRadar);
+router.get("/getFollowingRatings", homeScreen.getFollowingRatings);
 
 export default router;
