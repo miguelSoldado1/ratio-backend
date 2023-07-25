@@ -9,7 +9,6 @@ export const errorHandler = (error: Error | CustomError, req: Request, res: Resp
 
   res.status(statusCode).send({ message: error.message, status: statusCode });
   console.log(error);
-  return next();
 };
 
 export const notFound = (req: Request, res: Response) => {
