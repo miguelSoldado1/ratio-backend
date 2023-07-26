@@ -2,7 +2,7 @@ import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser, mapSmallIconUser } from "../scripts";
-import { BadRequest, CustomError } from "../errors";
+import { BadRequest, Conflict, NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 import type { PostLike } from "../models/postLike";
 import type { UserLike } from "../types";
@@ -24,7 +24,7 @@ export const getAlbum = async (req: Request, res: Response, next: NextFunction) 
 
     const albumResponse = await spotifyApi.getAlbum(albumId);
     if (albumResponse.body.album_type !== ALBUM_TYPE_FILTER) {
-      throw new CustomError("Not an album!", 404);
+      throw new NotFound();
     }
 
     const album = getAlbumDataAndTracks(albumResponse.body);
@@ -145,7 +145,7 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
       const ratings = await postRating.find({ album_id: newPost.album_id }).sort({ createdAt: -1, album_id: 1 });
       return res.status(201).json(ratings);
     }
-    throw new CustomError("Album already rated!", 409);
+    throw new Conflict("This album has already been rated by the user.");
   } catch (error) {
     return next(error);
   }
@@ -157,7 +157,7 @@ export const deletePost = async (req: Request, res: Response, next: NextFunction
     const { _id } = req.body;
     const rating = await postRating.findOneAndDelete({ _id: new Types.ObjectId(_id), user_id: data.body.id });
     if (!rating) {
-      throw new CustomError("No post with specified values.", 404);
+      throw new NotFound();
     }
     await postLike.deleteOne({ post_id: new Types.ObjectId(_id) });
 
@@ -191,7 +191,7 @@ export const createLike = async (req: Request, res: Response, next: NextFunction
     const data = await getUser(req);
     const userId = data.body.id;
     const like = await postLike.findOne({ post_id: new Types.ObjectId(ratingId), user_id: userId });
-    if (like) throw new CustomError("post already liked", 409);
+    if (like) throw new Conflict("This post has already been liked by the user.");
 
     const likeData = { post_id: new Types.ObjectId(ratingId), user_id: userId, createdAt: new Date() };
     await new postLike(likeData).save();
@@ -209,7 +209,7 @@ export const deleteLike = async (req: Request, res: Response, next: NextFunction
     const data = await getUser(req);
     const user_id = data.body.id;
     const like = await postLike.deleteOne({ post_id: new Types.ObjectId(rating_id), user_id: user_id });
-    if (like.deletedCount <= 0) throw new CustomError("like not found", 409);
+    if (like.deletedCount <= 0) throw new NotFound();
     const numberOfLikes = await postLike.countDocuments({ post_id: new Types.ObjectId(rating_id) });
 
     res.status(200).json({ message: "post disliked successfully.", numberOfLikes });
@@ -251,7 +251,7 @@ const getAllUserLikes = async (userLikes: PostLike[], req: Request) => {
     const userData = await Promise.all(userDataPromises);
     return userData;
   } catch (error) {
-    throw new CustomError("Failed to retrieve user likes", 500);
+    throw new NotFound();
   }
 };
 

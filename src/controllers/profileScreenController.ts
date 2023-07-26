@@ -1,7 +1,7 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
 import { getUser, mapAlbum, mapLargeIconUser, setAccessToken } from "../scripts";
-import { BadRequest, CustomError } from "../errors";
+import { BadRequest, Conflict } from "../errors";
 import { PipelineStage, Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
 import type { Post, UserProfilePost } from "../types";
@@ -82,7 +82,7 @@ export const followUser = async (req: Request, res: Response, next: NextFunction
     const data = await getUser(req);
     const userId = data.body.id;
     const following = await follow.findOne({ folower_id: userId, following_id: following_id });
-    if (following) throw new CustomError("Already following user.", 409);
+    if (following) throw new Conflict("This user is already being followed.");
     const followData = { follower_id: userId, following_id: following_id, createdAt: new Date() };
     await new follow(followData).save();
     const numberOfFollowers = await follow.countDocuments({ following_id });
@@ -98,7 +98,7 @@ export const unfollowUser = async (req: Request, res: Response, next: NextFuncti
     const data = await getUser(req);
     const userId = data.body.id;
     const following = await follow.deleteOne({ folower_id: userId, following_id: following_id });
-    if (following.deletedCount <= 0) throw new CustomError("Not following this user.", 409);
+    if (following.deletedCount <= 0) throw new Conflict("This user is already not being followed.");
     const numberOfFollowers = await follow.countDocuments({ following_id });
     res.status(200).json({ message: "user unfollowed successfully.", numberOfFollowers });
   } catch (error) {

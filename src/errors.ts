@@ -8,7 +8,29 @@ export class CustomError extends Error {
 }
 
 export class BadRequest extends CustomError {
-  constructor() {
-    super("Invalid parameters. Please check your request and try again.", 400);
+  constructor(message?: string) {
+    const errorMessage = message || "Invalid parameters. Please check your request and try again.";
+    super(errorMessage, 400);
+  }
+}
+
+export class NotFound extends CustomError {
+  constructor(message?: string) {
+    const errorMessage = message || "The requested resource was not found.";
+    super(errorMessage, 404);
+  }
+}
+
+export class Conflict extends CustomError {
+  constructor(message?: string) {
+    const errorMessage = message || "The request could not be processed because of conflict in the request.";
+    super(errorMessage, 409);
+  }
+}
+
+export class InternalServerError extends CustomError {
+  constructor(message?: string) {
+    const errorMessage = message || "Internal server error.";
+    super(errorMessage, 500);
   }
 }

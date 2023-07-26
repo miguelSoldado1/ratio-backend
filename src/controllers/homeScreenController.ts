@@ -2,7 +2,7 @@ import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapSmallIconUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
-import { CustomError } from "../errors";
+import { NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 import type { FeedPost, Post } from "../types";
 
@@ -177,7 +177,7 @@ const fetchAlbum = async (albumId: string, spotifyApi: SpotifyWebApi) => {
     const data = await spotifyApi.getAlbum(albumId);
     return mapAlbum(data.body);
   } catch (error) {
-    throw new CustomError("fetching album failed", 500);
+    throw new NotFound();
   }
 };
 

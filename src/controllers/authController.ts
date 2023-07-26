@@ -1,6 +1,6 @@
 import spotifyApi from "../spotifyApiWrapper";
 import config from "../../config";
-import { BadRequest, CustomError } from "../errors";
+import { BadRequest, InternalServerError } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
@@ -24,7 +24,7 @@ export const callback = (req: Request, res: Response, next: NextFunction) => {
     const state = req.query.state as string;
 
     if (error) {
-      throw new CustomError(error, 500);
+      throw new InternalServerError(error);
     }
 
     spotifyApi.authorizationCodeGrant(code).then((data) => {
