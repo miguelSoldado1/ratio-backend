@@ -8,7 +8,7 @@ export const errorHandler = (error: Error | CustomError, req: Request, res: Resp
   }
 
   res.status(statusCode).send({ message: error.message, status: statusCode });
-  console.log(error);
+  console.error(error);
 };
 
 export const notFound = (req: Request, res: Response) => {
