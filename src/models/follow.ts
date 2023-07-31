@@ -3,14 +3,14 @@ import config from "../../config";
 
 const COLLECTION_NAME = config.NODE_ENV === "production" ? "follow" : "follow_dev";
 
-export type Post = {
+export type Follow = {
   _id: Schema.Types.ObjectId;
   follower_id: string;
   following_id: string;
   createdAt: Date;
 };
 
-const postSchema: Schema = new Schema<Post>(
+const followSchema: Schema = new Schema<Follow>(
   {
     follower_id: { type: String, required: true },
     following_id: { type: String, required: true },
@@ -19,4 +19,4 @@ const postSchema: Schema = new Schema<Post>(
   { versionKey: false }
 );
 
-export default model<Post>("Follow", postSchema, COLLECTION_NAME);
+export default model<Follow>("Follow", followSchema, COLLECTION_NAME);
