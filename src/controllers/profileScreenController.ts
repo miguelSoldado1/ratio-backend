@@ -81,6 +81,7 @@ export const followUser = async (req: Request, res: Response, next: NextFunction
     const { following_id } = req.query;
     const data = await getUser(req);
     const userId = data.body.id;
+    if (following_id === userId) throw new Conflict("You can't follow yourself.");
     const following = await follow.findOne({ folower_id: userId, following_id: following_id });
     if (following) throw new Conflict("This user is already being followed.");
     const followData = { follower_id: userId, following_id: following_id, createdAt: new Date() };
