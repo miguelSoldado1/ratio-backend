@@ -1,10 +1,11 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
-import { getUser, mapAlbum, mapLargeIconUser, setAccessToken } from "../scripts";
+import { getUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
 import { BadRequest, Conflict } from "../errors";
 import { PipelineStage, Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
-import type { Post, UserProfilePost } from "../types";
+import type { Post, User, UserProfilePost } from "../types";
+import { Follow } from "../models/follow";
 
 const DEFAULT_PAGE_SIZE = 8;
 const POST_LIKES = "likes";
@@ -109,18 +110,61 @@ export const unfollowUser = async (req: Request, res: Response, next: NextFuncti
 
 export const getFollowingInfo = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { following_id } = req.query;
+    const { following_id: user_id } = req.query;
     const data = await getUser(req);
     const folower_id = data.body.id;
-    const following = await follow.findOne({ folower_id, following_id });
-    const numberOfFollowers = await follow.countDocuments({ following_id });
-    res.status(200).json({ following: !!following, followers: numberOfFollowers });
+    const following = await follow.findOne({ folower_id, following_id: user_id });
+    const numberOfFollowers = await follow.countDocuments({ following_id: user_id });
+    const numberOfFollowing = await follow.countDocuments({ follower_id: user_id });
+    res.status(200).json({ isFollowing: !!following, followers: numberOfFollowers, following: numberOfFollowing });
   } catch (error) {
     return next(error);
   }
 };
 
-const handleAlbumsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi): Promise<UserProfilePost[]> => {
+export const getUserFollowers = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { user_id } = req.query;
+    if (typeof user_id !== "string") {
+      throw new BadRequest();
+    }
+    const spotifyApi = setAccessToken(req);
+
+    const follows = await follow.find({ following_id: user_id });
+
+    const userPromises = follows.map(async (follow) => {
+      const user = await spotifyApi.getUser(follow.follower_id);
+      return mapSmallIconUser(user.body);
+    });
+    const result = await Promise.all(userPromises);
+    res.status(200).json({ users: result });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getUserFollowing = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { user_id } = req.query;
+    if (typeof user_id !== "string") {
+      throw new BadRequest();
+    }
+    const spotifyApi = setAccessToken(req);
+
+    const follows = await follow.find({ follower_id: user_id });
+
+    const userPromises = follows.map(async (follow) => {
+      const user = await spotifyApi.getUser(follow.following_id);
+      return mapSmallIconUser(user.body);
+    });
+    const result = await Promise.all(userPromises);
+
+    res.status(200).json({ users: result });
+  } catch (error) {
+    return next(error);
+  }
+};
+const handleAlbumsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi) => {
   const albumDataPromises = posts.map((post) => spotifyApi.getAlbum(post.album_id));
 
   const albumResults = await Promise.all(albumDataPromises);
@@ -129,6 +173,10 @@ const handleAlbumsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi
 
     return { ...post, album: albumInfo };
   });
+};
+
+const handleUserSpotifyCalls = async (userPromises: Promise<User>[]) => {
+  return await Promise.all(userPromises);
 };
 
 const handleCursorFilters = async (filter: string | undefined, user_id: string, cursor: string | undefined): Promise<PipelineStage[]> => {
