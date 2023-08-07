@@ -138,11 +138,10 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
   try {
     const data = await getUser(req);
     const userId = data.body.id;
-    const newPost = new postRating({ ...req.body, user_id: userId, createdAt: new Date() });
-    const rating = await postRating.findOne({ user_id: userId, album_id: newPost.album_id });
+    const rating = await postRating.findOne({ user_id: userId, album_id: req.body.album_id });
     if (rating === null) {
-      await newPost.save();
-      const ratings = await postRating.find({ album_id: newPost.album_id }).sort({ createdAt: -1, album_id: 1 });
+      await postRating.create({ ...req.body, user_id: userId, createdAt: new Date() });
+      const ratings = await postRating.find({ album_id: req.body.album_id }).sort({ createdAt: -1, album_id: 1 });
       return res.status(201).json(ratings);
     }
     throw new Conflict("This album has already been rated by the user.");
@@ -193,8 +192,7 @@ export const createLike = async (req: Request, res: Response, next: NextFunction
     const like = await postLike.findOne({ post_id: new Types.ObjectId(ratingId), user_id: userId });
     if (like) throw new Conflict("This post has already been liked by the user.");
 
-    const likeData = { post_id: new Types.ObjectId(ratingId), user_id: userId, createdAt: new Date() };
-    await new postLike(likeData).save();
+    await postLike.create({ post_id: new Types.ObjectId(ratingId), user_id: userId, createdAt: new Date() });
     const numberOfLikes = await postLike.countDocuments({ post_id: new Types.ObjectId(ratingId) });
 
     res.status(200).json({ message: "post liked successfully.", numberOfLikes });

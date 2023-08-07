@@ -83,10 +83,9 @@ export const followUser = async (req: Request, res: Response, next: NextFunction
     const data = await getUser(req);
     const userId = data.body.id;
     if (following_id === userId) throw new Conflict("You can't follow yourself.");
-    const following = await follow.findOne({ folower_id: userId, following_id: following_id });
+    const following = await follow.findOne({ follower_id: userId, following_id: following_id });
     if (following) throw new Conflict("This user is already being followed.");
-    const followData = { follower_id: userId, following_id: following_id, createdAt: new Date() };
-    await new follow(followData).save();
+    await follow.create({ follower_id: userId, following_id: following_id, createdAt: new Date() });
     const numberOfFollowers = await follow.countDocuments({ following_id });
     res.status(200).json({ message: "user followed successfully.", followers: numberOfFollowers, following: true });
   } catch (error) {
@@ -99,7 +98,7 @@ export const unfollowUser = async (req: Request, res: Response, next: NextFuncti
     const { following_id } = req.query;
     const data = await getUser(req);
     const userId = data.body.id;
-    const following = await follow.deleteOne({ folower_id: userId, following_id: following_id });
+    const following = await follow.deleteOne({ follower_id: userId, following_id: following_id });
     if (following.deletedCount <= 0) throw new Conflict("This user is already not being followed.");
     const numberOfFollowers = await follow.countDocuments({ following_id });
     res.status(200).json({ message: "user unfollowed successfully.", followers: numberOfFollowers, following: false });
@@ -112,8 +111,8 @@ export const getFollowingInfo = async (req: Request, res: Response, next: NextFu
   try {
     const { following_id: user_id } = req.query;
     const data = await getUser(req);
-    const folower_id = data.body.id;
-    const following = await follow.findOne({ folower_id, following_id: user_id });
+    const follower_id = data.body.id;
+    const following = await follow.findOne({ follower_id, following_id: user_id });
     const numberOfFollowers = await follow.countDocuments({ following_id: user_id });
     const numberOfFollowing = await follow.countDocuments({ follower_id: user_id });
     res.status(200).json({ isFollowing: !!following, followers: numberOfFollowers, following: numberOfFollowing });
@@ -124,19 +123,33 @@ export const getFollowingInfo = async (req: Request, res: Response, next: NextFu
 
 export const getUserFollowers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id } = req.query;
-    if (typeof user_id !== "string") {
+    const { user_id, cursor = undefined } = req.query;
+    if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
       throw new BadRequest();
     }
+
     const spotifyApi = setAccessToken(req);
 
-    const follows = await follow.find({ following_id: user_id });
+    const follows = await follow.aggregate([
+      {
+        $match: {
+          following_id: user_id,
+          ...(cursor &&
+            Types.ObjectId.isValid(cursor) && {
+              _id: {
+                $gt: new Types.ObjectId(cursor),
+              },
+            }),
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: 4 },
+    ]);
 
-    const userPromises = follows.map(async (follow) => {
-      const user = await spotifyApi.getUser(follow.follower_id);
-      return mapSmallIconUser(user.body);
-    });
-    const result = await Promise.all(userPromises);
+    const userPromises = follows.map((follow) => spotifyApi.getUser(follow.follower_id));
+    const users = await Promise.all(userPromises);
+    const result = users.map((user) => mapSmallIconUser(user.body));
+
     res.status(200).json({ users: result });
   } catch (error) {
     return next(error);
@@ -145,19 +158,37 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
 
 export const getUserFollowing = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id } = req.query;
-    if (typeof user_id !== "string") {
+    const { user_id, cursor = undefined } = req.query;
+    if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
       throw new BadRequest();
     }
+
     const spotifyApi = setAccessToken(req);
+    const follows: Follow[] = await follow.aggregate([
+      {
+        $match: {
+          follower_id: user_id,
+          ...(cursor &&
+            Types.ObjectId.isValid(cursor) && {
+              _id: {
+                $lt: new Types.ObjectId(cursor),
+              },
+            }),
+        },
+      },
+      { $sort: { createdAt: -1, _id: -1 } },
+      { $limit: 8 },
+    ]);
 
-    const follows = await follow.find({ follower_id: user_id });
-
-    const userPromises = follows.map(async (follow) => {
-      const user = await spotifyApi.getUser(follow.following_id);
-      return mapSmallIconUser(user.body);
-    });
-    const result = await Promise.all(userPromises);
+    const result = await Promise.all(
+      follows.map(async (follow) => {
+        const user = await spotifyApi.getUser(follow.following_id);
+        return {
+          user: mapSmallIconUser(user.body),
+          _id: follow._id,
+        };
+      })
+    );
 
     res.status(200).json({ users: result });
   } catch (error) {
@@ -173,10 +204,6 @@ const handleAlbumsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi
 
     return { ...post, album: albumInfo };
   });
-};
-
-const handleUserSpotifyCalls = async (userPromises: Promise<User>[]) => {
-  return await Promise.all(userPromises);
 };
 
 const handleCursorFilters = async (filter: string | undefined, user_id: string, cursor: string | undefined): Promise<PipelineStage[]> => {
