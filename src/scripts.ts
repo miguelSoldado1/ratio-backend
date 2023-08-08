@@ -139,7 +139,7 @@ export const handleFilters = (filter: string | undefined): Filter => {
   }
 };
 
-export const getUser = async (req: Request) => {
+export const getCurrentUser = async (req: Request) => {
   const spotifyApi = setAccessToken(req);
   return await spotifyApi.getMe();
 };

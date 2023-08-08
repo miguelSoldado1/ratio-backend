@@ -1,6 +1,6 @@
 import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
-import { getUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
+import { getCurrentUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
 import { BadRequest, Conflict } from "../errors";
 import { PipelineStage, Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
@@ -80,7 +80,7 @@ export const getUserRatings = async (req: Request, res: Response, next: NextFunc
 export const followUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { following_id } = req.query;
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const userId = data.body.id;
     if (following_id === userId) throw new Conflict("You can't follow yourself.");
     const following = await follow.findOne({ follower_id: userId, following_id: following_id });
@@ -96,7 +96,7 @@ export const followUser = async (req: Request, res: Response, next: NextFunction
 export const unfollowUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { following_id } = req.query;
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const userId = data.body.id;
     const following = await follow.deleteOne({ follower_id: userId, following_id: following_id });
     if (following.deletedCount <= 0) throw new Conflict("This user is already not being followed.");
@@ -110,7 +110,7 @@ export const unfollowUser = async (req: Request, res: Response, next: NextFuncti
 export const getFollowingInfo = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { following_id: user_id } = req.query;
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const follower_id = data.body.id;
     const following = await follow.findOne({ follower_id, following_id: user_id });
     const numberOfFollowers = await follow.countDocuments({ following_id: user_id });

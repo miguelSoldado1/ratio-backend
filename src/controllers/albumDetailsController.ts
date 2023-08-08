@@ -1,7 +1,7 @@
 import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { postLike, postRating } from "../models";
-import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getUser, mapSmallIconUser } from "../scripts";
+import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getCurrentUser, mapSmallIconUser } from "../scripts";
 import { BadRequest, Conflict, NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 import type { PostLike } from "../models/postLike";
@@ -136,7 +136,7 @@ export const getRelatedAlbums = async (req: Request, res: Response, next: NextFu
 
 export const createPost = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const userId = data.body.id;
     const rating = await postRating.findOne({ user_id: userId, album_id: req.body.album_id });
     if (rating === null) {
@@ -152,7 +152,7 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
 
 export const deletePost = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const { _id } = req.body;
     const rating = await postRating.findOneAndDelete({ _id: new Types.ObjectId(_id), user_id: data.body.id });
     if (!rating) {
@@ -187,7 +187,7 @@ export const getUsersProfile = async (req: Request, res: Response, next: NextFun
 export const createLike = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const ratingId = req.body.rating_id;
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const userId = data.body.id;
     const like = await postLike.findOne({ post_id: new Types.ObjectId(ratingId), user_id: userId });
     if (like) throw new Conflict("This post has already been liked by the user.");
@@ -204,7 +204,7 @@ export const createLike = async (req: Request, res: Response, next: NextFunction
 export const deleteLike = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { rating_id } = req.body;
-    const data = await getUser(req);
+    const data = await getCurrentUser(req);
     const user_id = data.body.id;
     const like = await postLike.deleteOne({ post_id: new Types.ObjectId(rating_id), user_id: user_id });
     if (like.deletedCount <= 0) throw new NotFound();
