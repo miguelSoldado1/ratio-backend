@@ -1,11 +1,10 @@
+import type { NextFunction, Request, Response } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
+import { PipelineStage, Types } from "mongoose";
 import { follow, postLike, postRating } from "../models";
 import { getCurrentUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
 import { BadRequest, Conflict } from "../errors";
-import { PipelineStage, Types } from "mongoose";
-import type { NextFunction, Request, Response } from "express";
-import type { Post, User, UserProfilePost } from "../types";
-import { Follow } from "../models/follow";
+import type { Post } from "../types";
 
 const DEFAULT_PAGE_SIZE = 8;
 const POST_LIKES = "likes";
@@ -115,7 +114,9 @@ export const getFollowingInfo = async (req: Request, res: Response, next: NextFu
     const following = await follow.findOne({ follower_id, following_id: user_id });
     const numberOfFollowers = await follow.countDocuments({ following_id: user_id });
     const numberOfFollowing = await follow.countDocuments({ follower_id: user_id });
-    res.status(200).json({ isFollowing: !!following, followers: numberOfFollowers, following: numberOfFollowing });
+    const numberOfPosts = await postRating.countDocuments({ user_id: user_id });
+
+    res.status(200).json({ isFollowing: !!following, followers: numberOfFollowers, following: numberOfFollowing, numberOfPosts: numberOfPosts });
   } catch (error) {
     return next(error);
   }
@@ -129,26 +130,57 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
     }
 
     const spotifyApi = setAccessToken(req);
+    const user = await spotifyApi.getMe();
 
-    const follows = await follow.aggregate([
-      {
-        $match: {
-          following_id: user_id,
-          ...(cursor &&
-            Types.ObjectId.isValid(cursor) && {
-              _id: {
-                $gt: new Types.ObjectId(cursor),
-              },
-            }),
+    const follows = await follow
+      .aggregate([
+        {
+          $match: {
+            following_id: user_id,
+            ...(cursor &&
+              Types.ObjectId.isValid(cursor) && {
+                _id: {
+                  $gt: new Types.ObjectId(cursor),
+                },
+              }),
+          },
         },
-      },
-      { $sort: { createdAt: -1 } },
-      { $limit: 4 },
-    ]);
+        {
+          $lookup: {
+            from: follow.collection.name,
+            let: { userId: "$follower_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $eq: ["$following_id", "$$userId"] }, { $eq: ["$follower_id", user.body.id] }],
+                  },
+                },
+              },
+              { $project: { _id: 1 } },
+            ],
+            as: "isFollowing",
+          },
+        },
+        {
+          $project: {
+            follower_id: 1,
+            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+          },
+        },
+      ])
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(DEFAULT_PAGE_SIZE);
 
-    const userPromises = follows.map((follow) => spotifyApi.getUser(follow.follower_id));
-    const users = await Promise.all(userPromises);
-    const result = users.map((user) => mapSmallIconUser(user.body));
+    const result = await Promise.all(
+      follows.map(async ({ follower_id, ...follow }) => {
+        const user = await spotifyApi.getUser(follower_id);
+        return {
+          profile: mapSmallIconUser(user.body),
+          ...follow,
+        };
+      })
+    );
 
     res.status(200).json({ users: result });
   } catch (error) {
@@ -164,28 +196,54 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
     }
 
     const spotifyApi = setAccessToken(req);
-    const follows: Follow[] = await follow.aggregate([
-      {
-        $match: {
-          follower_id: user_id,
-          ...(cursor &&
-            Types.ObjectId.isValid(cursor) && {
-              _id: {
-                $lt: new Types.ObjectId(cursor),
-              },
-            }),
+    const user = await spotifyApi.getMe();
+
+    const follows = await follow
+      .aggregate([
+        {
+          $match: {
+            follower_id: user_id,
+            ...(cursor &&
+              Types.ObjectId.isValid(cursor) && {
+                _id: {
+                  $lt: new Types.ObjectId(cursor),
+                },
+              }),
+          },
         },
-      },
-      { $sort: { createdAt: -1, _id: -1 } },
-      { $limit: 8 },
-    ]);
+        {
+          $lookup: {
+            from: follow.collection.name,
+            let: { userId: "$following_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $eq: ["$follower_id", user.body.id] }, { $eq: ["$following_id", "$$userId"] }],
+                  },
+                },
+              },
+              { $project: { _id: 1 } },
+            ],
+            as: "isFollowing",
+          },
+        },
+        {
+          $project: {
+            following_id: 1,
+            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+          },
+        },
+      ])
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(DEFAULT_PAGE_SIZE);
 
     const result = await Promise.all(
-      follows.map(async (follow) => {
-        const user = await spotifyApi.getUser(follow.following_id);
+      follows.map(async ({ following_id, ...follow }) => {
+        const user = await spotifyApi.getUser(following_id);
         return {
-          user: mapSmallIconUser(user.body),
-          _id: follow._id,
+          profile: mapSmallIconUser(user.body),
+          ...follow,
         };
       })
     );
@@ -195,6 +253,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
     return next(error);
   }
 };
+
 const handleAlbumsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi) => {
   const albumDataPromises = posts.map((post) => spotifyApi.getAlbum(post.album_id));
 
@@ -258,7 +317,7 @@ const handleCursorFilters = async (filter: string | undefined, user_id: string, 
           $sort: {
             rating: -1,
             createdAt: -1,
-            _id: 1, // Add this to ensure consistent sorting for equal ratings
+            _id: 1,
           },
         },
       ];
