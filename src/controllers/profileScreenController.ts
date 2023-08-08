@@ -182,7 +182,7 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
       })
     );
 
-    res.status(200).json({ users: result });
+    res.status(200).json({ users: result, cursor: follows.length === DEFAULT_PAGE_SIZE ? follows[follows.length - 1]._id : null });
   } catch (error) {
     return next(error);
   }
@@ -248,7 +248,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
       })
     );
 
-    res.status(200).json({ users: result });
+    res.status(200).json({ users: result, cursor: follows.length === DEFAULT_PAGE_SIZE ? follows[follows.length - 1]._id : null });
   } catch (error) {
     return next(error);
   }
