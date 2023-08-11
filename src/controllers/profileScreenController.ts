@@ -100,7 +100,7 @@ export const unfollowUser = async (req: Request, res: Response, next: NextFuncti
     const following = await follow.deleteOne({ follower_id: userId, following_id: following_id });
     if (following.deletedCount <= 0) throw new Conflict("This user is already not being followed.");
     const numberOfFollowers = await follow.countDocuments({ following_id });
-    res.status(200).json({ message: "user unfollowed successfully.", followers: numberOfFollowers, following: false });
+    res.status(200).json({ message: "User unfollowed successfully.", followers: numberOfFollowers, following: false });
   } catch (error) {
     return next(error);
   }
@@ -111,7 +111,7 @@ export const getFollowingInfo = async (req: Request, res: Response, next: NextFu
     const { following_id: user_id } = req.query;
     const data = await getCurrentUser(req);
     const follower_id = data.body.id;
-    const following = await follow.findOne({ follower_id, following_id: user_id });
+    const following = await follow.exists({ follower_id, following_id: user_id });
     const numberOfFollowers = await follow.countDocuments({ following_id: user_id });
     const numberOfFollowing = await follow.countDocuments({ follower_id: user_id });
     const numberOfPosts = await postRating.countDocuments({ user_id: user_id });
