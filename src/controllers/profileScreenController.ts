@@ -6,7 +6,7 @@ import { getCurrentUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccess
 import { BadRequest, Conflict } from "../errors";
 import type { Post } from "../types";
 
-const DEFAULT_PAGE_SIZE = 4;
+const DEFAULT_PAGE_SIZE = 8;
 const POST_LIKES = "likes";
 
 export const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
