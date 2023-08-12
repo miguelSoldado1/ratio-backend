@@ -140,7 +140,7 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
             ...(cursor &&
               Types.ObjectId.isValid(cursor) && {
                 _id: {
-                  $gt: new Types.ObjectId(cursor),
+                  $lt: new Types.ObjectId(cursor),
                 },
               }),
           },
