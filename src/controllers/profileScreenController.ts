@@ -6,7 +6,7 @@ import { getCurrentUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccess
 import { BadRequest, Conflict } from "../errors";
 import type { Post } from "../types";
 
-const DEFAULT_PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 4;
 const POST_LIKES = "likes";
 
 export const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
@@ -24,6 +24,7 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
     return next(error);
   }
 };
+
 export const getUserRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { user_id, cursor, filter } = req.query;
@@ -131,49 +132,66 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
 
     const spotifyApi = setAccessToken(req);
     const user = await spotifyApi.getMe();
+    const userId = user.body.id;
 
-    const follows = await follow
-      .aggregate([
-        {
-          $match: {
-            following_id: user_id,
-            ...(cursor &&
-              Types.ObjectId.isValid(cursor) && {
-                _id: {
-                  $lt: new Types.ObjectId(cursor),
-                },
-              }),
-          },
+    const follows = await follow.aggregate([
+      {
+        $match: {
+          following_id: user_id,
+          ...(cursor &&
+            Types.ObjectId.isValid(cursor) && {
+              _id: {
+                $lt: new Types.ObjectId(cursor),
+              },
+              // Need to ignore the userId because we are returning it as the first element whenever it exists
+              follower_id: {
+                $ne: userId,
+              },
+            }),
         },
-        {
-          $lookup: {
-            from: follow.collection.name,
-            let: { userId: "$follower_id" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [{ $eq: ["$following_id", "$$userId"] }, { $eq: ["$follower_id", user.body.id] }],
-                  },
+      },
+      {
+        $lookup: {
+          from: follow.collection.name,
+          let: { userId: "$follower_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [{ $eq: ["$following_id", "$$userId"] }, { $eq: ["$follower_id", userId] }],
                 },
               },
-              { $project: { _id: 1 } },
-            ],
-            as: "isFollowing",
+            },
+            { $project: { _id: 1 } },
+          ],
+          as: "isFollowing",
+        },
+      },
+      {
+        $project: {
+          follower_id: 1,
+          isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+          // if the user is a follower we want to return it at the top of the list.
+          priority: {
+            $cond: {
+              if: !cursor,
+              then: { $eq: ["$follower_id", userId] },
+              else: false,
+            },
           },
         },
-        {
-          $project: {
-            follower_id: 1,
-            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
-          },
+      },
+      {
+        $sort: {
+          priority: -1,
+          _id: -1,
         },
-      ])
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(DEFAULT_PAGE_SIZE);
+      },
+      { $limit: DEFAULT_PAGE_SIZE },
+    ]);
 
     const result = await Promise.all(
-      follows.map(async ({ follower_id, ...follow }) => {
+      follows.map(async ({ priority, follower_id, ...follow }) => {
         const user = await spotifyApi.getUser(follower_id);
         return {
           profile: mapSmallIconUser(user.body),
@@ -197,46 +215,63 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
 
     const spotifyApi = setAccessToken(req);
     const user = await spotifyApi.getMe();
+    const userId = user.body.id;
 
-    const follows = await follow
-      .aggregate([
-        {
-          $match: {
-            follower_id: user_id,
-            ...(cursor &&
-              Types.ObjectId.isValid(cursor) && {
-                _id: {
-                  $lt: new Types.ObjectId(cursor),
-                },
-              }),
-          },
+    const follows = await follow.aggregate([
+      {
+        $match: {
+          follower_id: user_id,
+          ...(cursor &&
+            Types.ObjectId.isValid(cursor) && {
+              _id: {
+                $lt: new Types.ObjectId(cursor),
+              },
+              // Need to ignore the userId because we are returning it as the first element whenever it exists
+              following_id: {
+                $ne: userId,
+              },
+            }),
         },
-        {
-          $lookup: {
-            from: follow.collection.name,
-            let: { userId: "$following_id" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [{ $eq: ["$follower_id", user.body.id] }, { $eq: ["$following_id", "$$userId"] }],
-                  },
+      },
+      {
+        $lookup: {
+          from: follow.collection.name,
+          let: { userId: "$following_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [{ $eq: ["$follower_id", userId] }, { $eq: ["$following_id", "$$userId"] }],
                 },
               },
-              { $project: { _id: 1 } },
-            ],
-            as: "isFollowing",
+            },
+            { $project: { _id: 1 } },
+          ],
+          as: "isFollowing",
+        },
+      },
+      {
+        $project: {
+          following_id: 1,
+          isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+          // if the user is being followed we want to return it at the top of the list.
+          priority: {
+            $cond: {
+              if: !cursor,
+              then: { $eq: ["$following_id", userId] },
+              else: false,
+            },
           },
         },
-        {
-          $project: {
-            following_id: 1,
-            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
-          },
+      },
+      {
+        $sort: {
+          priority: -1,
+          _id: -1,
         },
-      ])
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(DEFAULT_PAGE_SIZE);
+      },
+      { $limit: DEFAULT_PAGE_SIZE },
+    ]);
 
     const result = await Promise.all(
       follows.map(async ({ following_id, ...follow }) => {
