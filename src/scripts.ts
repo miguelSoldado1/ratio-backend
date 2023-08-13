@@ -109,7 +109,7 @@ export const mapSmallIconUser = ({ id, display_name, images }: SpotifyApi.UserPr
   return {
     id: id ?? "",
     displayName: display_name ?? "",
-    imageUrl: images ? images[0]?.url : null,
+    imageUrl: images && images.length > 0 ? images[0]?.url : null,
   };
 };
 

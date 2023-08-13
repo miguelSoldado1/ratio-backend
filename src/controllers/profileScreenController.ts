@@ -252,8 +252,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
         },
       },
       {
-        $project: {
-          following_id: 1,
+        $addFields: {
           isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
           // if the user is being followed we want to return it at the top of the list.
           priority: {
@@ -265,18 +264,13 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
           },
         },
       },
-      {
-        $sort: {
-          priority: -1,
-          _id: -1,
-        },
-      },
+      { $sort: { priority: -1, _id: -1 } },
       { $limit: DEFAULT_PAGE_SIZE },
     ];
 
     const follows = await follow.aggregate(pipelineStage);
     const result = await Promise.all(
-      follows.map(async ({ following_id, ...follow }) => {
+      follows.map(async ({ priority, following_id, ...follow }) => {
         const user = await spotifyApi.getUser(following_id);
         return {
           profile: mapSmallIconUser(user.body),

@@ -1,6 +1,6 @@
 import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
-import { postLike, postRating } from "../models";
+import { follow, postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getCurrentUser, mapSmallIconUser } from "../scripts";
 import { BadRequest, Conflict, NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
@@ -206,53 +206,77 @@ export const deleteLike = async (req: Request, res: Response, next: NextFunction
 export const getPostLikes = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { post_id, cursor = undefined } = req.query;
-    if (typeof post_id !== "string") {
+    if (typeof post_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
       throw new BadRequest();
     }
 
+    const spotifyApi = setAccessToken(req);
+    const user = await spotifyApi.getMe();
+    const userId = user.body.id;
+
     const pipelineStage: PipelineStage[] = [
-      { $match: { post_id: new Types.ObjectId(post_id), ...(cursor && { _id: { $lt: new Types.ObjectId(cursor.toString()) } }) } },
-      { $sort: { createdAt: -1, _id: -1 } },
+      {
+        $match: {
+          post_id: new Types.ObjectId(post_id),
+          ...(cursor &&
+            Types.ObjectId.isValid(cursor) && {
+              _id: {
+                $lt: new Types.ObjectId(cursor),
+              },
+              // Need to ignore the userId because we are returning it as the first element whenever it exists
+              user_id: {
+                $ne: userId,
+              },
+            }),
+        },
+      },
+      {
+        $lookup: {
+          from: follow.collection.name,
+          let: { userId: "$user_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [{ $eq: ["$follower_id", userId] }, { $eq: ["$following_id", "$$userId"] }],
+                },
+              },
+            },
+            { $project: { _id: 1 } },
+          ],
+          as: "isFollowing",
+        },
+      },
+      {
+        $addFields: {
+          isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+          priority: {
+            $cond: {
+              if: !cursor,
+              then: { $eq: ["$user_id", userId] },
+              else: false,
+            },
+          },
+        },
+      },
+      { $sort: { priority: -1, _id: -1 } },
       { $limit: DEFAULT_PAGE_SIZE },
     ];
 
-    const likes: PostLike[] = await postLike.aggregate(pipelineStage);
+    const likes = await postLike.aggregate(pipelineStage);
+    const result = await Promise.all(
+      likes.map(async ({ priority, user_id, ...like }) => {
+        const user = await spotifyApi.getUser(user_id);
+        return {
+          profile: mapSmallIconUser(user.body),
+          ...like,
+        };
+      })
+    );
 
-    const postLikes = await getAllUserLikes(likes, req);
-    res.status(200).json({
-      postLikes: postLikes,
-      cursor: postLikes.length === DEFAULT_PAGE_SIZE ? likes[likes.length - 1]._id : null,
-      count: await postLike.countDocuments({ post_id: post_id }),
-    });
+    res.status(200).json({ users: result, cursor: result.length === DEFAULT_PAGE_SIZE ? likes[likes.length - 1]._id : null });
   } catch (error) {
     return next(error);
-  }
-};
-
-const getAllUserLikes = async (userLikes: PostLike[], req: Request) => {
-  const spotifyApi = setAccessToken(req);
-  try {
-    const userDataPromises = userLikes.map((postLike) => getSingleUserLike(spotifyApi, postLike));
-    const userData = await Promise.all(userDataPromises);
-    return userData;
-  } catch (error) {
-    throw new NotFound();
-  }
-};
-
-const getSingleUserLike = async (spotifyApi: SpotifyWebApi, postLike: PostLike): Promise<UserLike> => {
-  try {
-    const { body: user } = await spotifyApi.getUser(postLike.user_id);
-
-    return {
-      id: user?.id ?? "",
-      displayName: user?.display_name ?? "",
-      imageUrl: user?.images?.[0]?.url ?? null,
-      like_id: postLike._id,
-      createdAt: postLike.createdAt,
-    };
-  } catch (error) {
-    return getUserError(postLike);
   }
 };
 
@@ -261,5 +285,5 @@ const getUserError = (postLike: PostLike): UserLike => ({
   displayName: "User not found",
   imageUrl: null,
   like_id: postLike._id,
-  createdAt: postLike.createdAt,
+  ...postLike,
 });
