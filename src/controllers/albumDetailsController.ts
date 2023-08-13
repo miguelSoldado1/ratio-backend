@@ -7,7 +7,7 @@ import type { NextFunction, Request, Response } from "express";
 import type { PostLike } from "../models/postLike";
 import type { UserLike } from "../types";
 
-const DEFAULT_PAGE_SIZE = 6;
+const DEFAULT_PAGE_SIZE = 8;
 const RELATED_RAIL_MAX_SIZE = 10;
 const DEFAULT_PAGE_NUMBER = 0;
 const ALBUM_TYPE_FILTER = "album";
@@ -21,8 +21,8 @@ export const getAlbum = async (req: Request, res: Response, next: NextFunction) 
     }
 
     const spotifyApi = setAccessToken(req);
-
     const albumResponse = await spotifyApi.getAlbum(albumId);
+
     if (albumResponse.body.album_type !== ALBUM_TYPE_FILTER) {
       throw new NotFound();
     }
@@ -38,7 +38,7 @@ export const getCommunityAlbumRating = async (req: Request, res: Response, next:
   try {
     const { album_id, user_id } = req.query;
 
-    const pageSize = req.query.page_size ? parseInt(req.query.page_size?.toString()) : DEFAULT_PAGE_SIZE;
+    const pageSize = req.query.page_size ? parseInt(req.query.page_size?.toString()) : 6;
     const pageNumber = req.query.page_number ? parseInt(req.query.page_number.toString()) : DEFAULT_PAGE_NUMBER;
 
     let filter = handleFilters(req.query.order?.toString());
@@ -74,14 +74,12 @@ export const getCommunityAlbumRating = async (req: Request, res: Response, next:
 export const getMyAlbumRating = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { album_id, user_id } = req.query;
-    const postRatings = await postRating.findOne({ album_id: album_id, user_id: user_id });
-    var rating = null;
-    if (postRatings?.rating) {
-      rating = postRatings.rating;
-    }
+    const postRatings = await postRating.findOne({ album_id, user_id });
+    const rating = postRatings?.rating || null;
+
     res.status(200).json({ personalRating: rating });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -90,24 +88,13 @@ export const getAverageAlbumRating = async (req: Request, res: Response, next: N
     let roundedResult = null;
     let numRatings = 0;
     const { album_id } = req.query;
-    const postRatings = await postRating.aggregate([
-      {
-        $match: {
-          album_id: album_id,
-        },
-      },
-      {
-        $group: {
-          _id: 0,
-          sum: {
-            $sum: 1,
-          },
-          average: {
-            $avg: "$rating",
-          },
-        },
-      },
-    ]);
+
+    const pipelineStage: PipelineStage[] = [
+      { $match: { album_id: album_id } },
+      { $group: { _id: 0, sum: { $sum: 1 }, average: { $avg: "$rating" } } },
+    ];
+
+    const postRatings = await postRating.aggregate(pipelineStage);
     if (postRatings.length > 0) {
       roundedResult = Math.round(postRatings[0].average * 10) / 10;
       numRatings = postRatings[0].sum;
@@ -223,18 +210,18 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
       throw new BadRequest();
     }
 
-    const pageSize = req.query.page_size ? parseInt(req.query.page_size?.toString()) : DEFAULT_PAGE_SIZE;
-    let pipeline: PipelineStage[] = [{ $match: { post_id: new Types.ObjectId(post_id) } }];
-    if (cursor) pipeline.push({ $match: { _id: { $lt: new Types.ObjectId(cursor.toString()) } } });
+    const pipelineStage: PipelineStage[] = [
+      { $match: { post_id: new Types.ObjectId(post_id), ...(cursor && { _id: { $lt: new Types.ObjectId(cursor.toString()) } }) } },
+      { $sort: { createdAt: -1, _id: -1 } },
+      { $limit: DEFAULT_PAGE_SIZE },
+    ];
 
-    pipeline.push({ $sort: { createdAt: -1 } });
-    pipeline.push({ $limit: pageSize });
-    const likes: PostLike[] = await postLike.aggregate(pipeline);
+    const likes: PostLike[] = await postLike.aggregate(pipelineStage);
 
     const postLikes = await getAllUserLikes(likes, req);
     res.status(200).json({
       postLikes: postLikes,
-      cursor: postLikes.length === pageSize ? likes[likes.length - 1]._id : null,
+      cursor: postLikes.length === DEFAULT_PAGE_SIZE ? likes[likes.length - 1]._id : null,
       count: await postLike.countDocuments({ post_id: post_id }),
     });
   } catch (error) {

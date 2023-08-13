@@ -134,7 +134,7 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
     const user = await spotifyApi.getMe();
     const userId = user.body.id;
 
-    const follows = await follow.aggregate([
+    const pipelineStage: PipelineStage[] = [
       {
         $match: {
           following_id: user_id,
@@ -188,8 +188,9 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
         },
       },
       { $limit: DEFAULT_PAGE_SIZE },
-    ]);
+    ];
 
+    const follows = await follow.aggregate(pipelineStage);
     const result = await Promise.all(
       follows.map(async ({ priority, follower_id, ...follow }) => {
         const user = await spotifyApi.getUser(follower_id);
@@ -217,7 +218,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
     const user = await spotifyApi.getMe();
     const userId = user.body.id;
 
-    const follows = await follow.aggregate([
+    const pipelineStage: PipelineStage[] = [
       {
         $match: {
           follower_id: user_id,
@@ -271,8 +272,9 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
         },
       },
       { $limit: DEFAULT_PAGE_SIZE },
-    ]);
+    ];
 
+    const follows = await follow.aggregate(pipelineStage);
     const result = await Promise.all(
       follows.map(async ({ following_id, ...follow }) => {
         const user = await spotifyApi.getUser(following_id);
@@ -318,6 +320,7 @@ const handleCursorFilters = async (filter: string | undefined, user_id: string, 
         {
           $sort: {
             createdAt: 1,
+            _id: 1,
           },
         },
       ];
@@ -373,6 +376,7 @@ const handleCursorFilters = async (filter: string | undefined, user_id: string, 
         {
           $sort: {
             createdAt: -1,
+            _id: -1,
           },
         },
       ];
