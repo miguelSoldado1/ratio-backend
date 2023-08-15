@@ -1,11 +1,10 @@
 import { PipelineStage, Types } from "mongoose";
-import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getCurrentUser, mapSmallIconUser } from "../scripts";
 import { BadRequest, Conflict, NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
-import type { PostLike } from "../models/postLike";
-import type { UserLike } from "../types";
+import type { LikeAggregationResult } from "../types";
+import SpotifyWebApi from "spotify-web-api-node";
 
 const DEFAULT_PAGE_SIZE = 8;
 const RELATED_RAIL_MAX_SIZE = 10;
@@ -263,16 +262,8 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
       { $limit: DEFAULT_PAGE_SIZE },
     ];
 
-    const likes = await postLike.aggregate(pipelineStage);
-    const result = await Promise.all(
-      likes.map(async ({ priority, user_id, ...like }) => {
-        const user = await spotifyApi.getUser(user_id);
-        return {
-          profile: mapSmallIconUser(user.body),
-          ...like,
-        };
-      })
-    );
+    const likes: LikeAggregationResult[] = await postLike.aggregate(pipelineStage);
+    const result = await Promise.all(likes.map(async (postLike) => await handleLikesGetUser(postLike, spotifyApi)));
 
     res.status(200).json({ users: result, cursor: result.length === DEFAULT_PAGE_SIZE ? likes[likes.length - 1]._id : null });
   } catch (error) {
@@ -280,10 +271,21 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-const getUserError = (postLike: PostLike): UserLike => ({
-  id: "",
-  displayName: "User not found",
-  imageUrl: null,
-  like_id: postLike._id,
-  ...postLike,
-});
+const handleLikesGetUser = async (postLike: LikeAggregationResult, spotifyApi: SpotifyWebApi) => {
+  try {
+    const user = await spotifyApi.getUser(postLike.user_id);
+    return {
+      profile: mapSmallIconUser(user.body),
+      isFollowing: postLike.isFollowing,
+      _id: postLike._id,
+      createdAt: postLike.createdAt,
+    };
+  } catch (e) {
+    return {
+      profile: { id: "", displayName: "User not found", imageUrl: null },
+      isFollowing: postLike.isFollowing,
+      _id: postLike._id,
+      createdAt: postLike.createdAt,
+    };
+  }
+};

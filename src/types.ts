@@ -1,4 +1,4 @@
-import type { ObjectId } from "mongoose";
+import { PostLike } from "./models/postLike";
 import type { PostRating } from "./models/postRating";
 
 export type Album = {
@@ -51,14 +51,7 @@ export interface FeedPost extends Post {
   album: Album;
 }
 
-export interface UserProfilePost extends Post {
-  album: Album;
+export interface LikeAggregationResult extends PostLike {
+  isFollowing: boolean;
+  priority: boolean;
 }
-
-export type UserLike = {
-  id: string;
-  displayName: string;
-  imageUrl: string | null;
-  like_id: ObjectId;
-  createdAt: Date;
-};
