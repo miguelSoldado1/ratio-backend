@@ -1,14 +1,8 @@
 import { Schema, Types, model } from "mongoose";
 import config from "../../config";
+import type { PostLike } from "./types";
 
 const COLLECTION_NAME = config.NODE_ENV === "production" ? "postlike" : "postlike_dev";
-
-export type PostLike = {
-  _id: Schema.Types.ObjectId;
-  user_id: string;
-  post_id: Schema.Types.ObjectId;
-  createdAt: Date;
-};
 
 const postLikeSchema = new Schema<PostLike>(
   {

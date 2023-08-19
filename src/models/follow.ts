@@ -1,14 +1,8 @@
 import { Schema, model } from "mongoose";
 import config from "../../config";
+import type { Follow } from "./types";
 
 const COLLECTION_NAME = config.NODE_ENV === "production" ? "follow" : "follow_dev";
-
-export type Follow = {
-  _id: Schema.Types.ObjectId;
-  follower_id: string;
-  following_id: string;
-  createdAt: Date;
-};
 
 const followSchema: Schema = new Schema<Follow>(
   {

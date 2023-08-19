@@ -1,10 +1,13 @@
 import { PipelineStage, Types } from "mongoose";
+import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getCurrentUser, mapSmallIconUser } from "../scripts";
+import { infinitePagination } from "../pagination";
 import { BadRequest, Conflict, NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
 import type { LikeAggregationResult } from "../types";
-import SpotifyWebApi from "spotify-web-api-node";
+import type { PostLike } from "../models/types";
+import type { InfinitePaginationParams } from "../pagination/types";
 
 const DEFAULT_PAGE_SIZE = 8;
 const RELATED_RAIL_MAX_SIZE = 10;
@@ -205,7 +208,7 @@ export const deleteLike = async (req: Request, res: Response, next: NextFunction
 export const getPostLikes = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { post_id, cursor = undefined } = req.query;
-    if (typeof post_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
+    if (typeof post_id !== "string" || !Types.ObjectId.isValid(post_id) || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
       throw new BadRequest();
     }
 
@@ -213,59 +216,59 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
     const user = await spotifyApi.getMe();
     const userId = user.body.id;
 
-    const pipelineStage: PipelineStage[] = [
-      {
-        $match: {
-          post_id: new Types.ObjectId(post_id),
-          ...(cursor &&
-            Types.ObjectId.isValid(cursor) && {
-              _id: {
-                $lt: new Types.ObjectId(cursor),
-              },
-              // Need to ignore the userId because we are returning it as the first element whenever it exists
-              user_id: {
-                $ne: userId,
-              },
-            }),
-        },
+    const paginationParams: InfinitePaginationParams<PostLike> = {
+      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      limit: DEFAULT_PAGE_SIZE,
+      match: {
+        post_id: new Types.ObjectId(post_id),
+        ...(cursor && {
+          user_id: {
+            $ne: userId,
+          },
+        }),
       },
-      {
-        $lookup: {
-          from: follow.collection.name,
-          let: { userId: "$user_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [{ $eq: ["$follower_id", userId] }, { $eq: ["$following_id", "$$userId"] }],
+      query: [
+        {
+          $lookup: {
+            from: follow.collection.name,
+            let: { userId: "$user_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $eq: ["$follower_id", userId] }, { $eq: ["$following_id", "$$userId"] }],
+                  },
                 },
               },
-            },
-            { $project: { _id: 1 } },
-          ],
-          as: "isFollowing",
+              { $project: { _id: 1 } },
+            ],
+            as: "isFollowing",
+          },
         },
-      },
-      {
-        $addFields: {
-          isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
-          priority: {
-            $cond: {
-              if: !cursor,
-              then: { $eq: ["$user_id", userId] },
-              else: false,
+        {
+          $addFields: {
+            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+            priority: {
+              $cond: {
+                if: !next,
+                then: { $eq: ["$user_id", userId] },
+                else: false,
+              },
             },
           },
         },
-      },
-      { $sort: { priority: -1, _id: -1 } },
-      { $limit: DEFAULT_PAGE_SIZE },
-    ];
+        {
+          $sort: {
+            priority: -1,
+          },
+        },
+      ],
+    };
 
-    const likes: LikeAggregationResult[] = await postLike.aggregate(pipelineStage);
-    const result = await Promise.all(likes.map(async (postLike) => await handleLikesGetUser(postLike, spotifyApi)));
+    const result = await infinitePagination<PostLike>(paginationParams, postLike);
+    const users = await Promise.all(result.results.map(async (postLike) => await handleLikesGetUser(postLike, spotifyApi)));
 
-    res.status(200).json({ users: result, cursor: result.length === DEFAULT_PAGE_SIZE ? likes[likes.length - 1]._id : null });
+    res.status(200).json({ users: users, cursor: result.next });
   } catch (error) {
     return next(error);
   }

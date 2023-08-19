@@ -1,5 +1,4 @@
-import { PostLike } from "./models/postLike";
-import type { PostRating } from "./models/postRating";
+import type { PostLike, PostRating } from "./models/types";
 
 export type Album = {
   name: string;
@@ -54,4 +53,10 @@ export interface FeedPost extends Post {
 export interface LikeAggregationResult extends PostLike {
   isFollowing: boolean;
   priority: boolean;
+}
+
+export enum FilterString {
+  top_rated = "top_rated",
+  oldest = "oldest",
+  latest = "latest",
 }

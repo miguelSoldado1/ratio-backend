@@ -1,10 +1,13 @@
-import type { NextFunction, Request, Response } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
-import { PipelineStage, Types } from "mongoose";
+import { Types } from "mongoose";
 import { follow, postLike, postRating } from "../models";
-import { getCurrentUser, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
+import { infinitePagination } from "../pagination";
+import { getCurrentUser, handleFiltersNew, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
 import { BadRequest, Conflict } from "../errors";
+import type { NextFunction, Request, Response } from "express";
 import type { Post } from "../types";
+import type { InfinitePaginationParams } from "../pagination/types";
+import type { Follow, PostRating } from "../models/types";
 
 const DEFAULT_PAGE_SIZE = 8;
 const POST_LIKES = "likes";
@@ -27,51 +30,56 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
 
 export const getUserRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id, cursor, filter } = req.query;
+    const { user_id, cursor = undefined, filter } = req.query;
     if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined") || typeof filter !== "string")
       throw new BadRequest();
 
     const spotifyApi = setAccessToken(req);
     const user = await spotifyApi.getMe();
+    const userId = user.body.id;
 
-    let pipeline: PipelineStage[] = await handleCursorFilters(filter, user_id, cursor);
-    pipeline.push(
-      {
-        $limit: DEFAULT_PAGE_SIZE,
-      },
-      {
-        $lookup: {
-          from: postLike.collection.name,
-          localField: "_id",
-          foreignField: "post_id",
-          as: POST_LIKES,
-        },
-      },
-      {
-        $addFields: {
-          likes: { $size: `$${POST_LIKES}` },
-          liked_by_user: {
-            $gt: [
-              {
-                $size: {
-                  $filter: {
-                    input: `$${POST_LIKES}`,
-                    as: "like",
-                    cond: { $eq: ["$$like.user_id", user.body.id] },
-                  },
-                },
-              },
-              0,
-            ],
+    let filterParams = handleFiltersNew(filter);
+
+    const paginationParams: InfinitePaginationParams<PostRating> = {
+      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      limit: DEFAULT_PAGE_SIZE,
+      match: { user_id: user_id },
+      query: [
+        {
+          $lookup: {
+            from: postLike.collection.name,
+            localField: "_id",
+            foreignField: "post_id",
+            as: POST_LIKES,
           },
         },
-      }
-    );
+        {
+          $addFields: {
+            likes: { $size: `$${POST_LIKES}` },
+            liked_by_user: {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: `$${POST_LIKES}`,
+                      as: "like",
+                      cond: { $eq: ["$$like.user_id", userId] },
+                    },
+                  },
+                },
+                0,
+              ],
+            },
+          },
+        },
+      ],
+      ...filterParams,
+    };
 
-    const postRatings: Post[] = await postRating.aggregate(pipeline);
-    const result = await handleAlbumsSpotifyCalls(postRatings, spotifyApi);
+    const result = await infinitePagination<PostRating>(paginationParams, postRating);
+    const data = await handleAlbumsSpotifyCalls(result.results, spotifyApi);
 
-    res.status(200).json({ data: result, cursor: result.length === DEFAULT_PAGE_SIZE ? result[result.length - 1]._id : null });
+    res.status(200).json({ data: data, cursor: result.next });
   } catch (error) {
     return next(error);
   }
@@ -134,65 +142,60 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
     const user = await spotifyApi.getMe();
     const userId = user.body.id;
 
-    const pipelineStage: PipelineStage[] = [
-      {
-        $match: {
-          following_id: user_id,
-          ...(cursor &&
-            Types.ObjectId.isValid(cursor) && {
-              _id: {
-                $lt: new Types.ObjectId(cursor),
-              },
-              // Need to ignore the userId because we are returning it as the first element whenever it exists
-              follower_id: {
-                $ne: userId,
-              },
-            }),
-        },
+    const paginationParams: InfinitePaginationParams<Follow> = {
+      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      limit: DEFAULT_PAGE_SIZE,
+      match: {
+        following_id: user_id,
+        ...(cursor && {
+          // Need to ignore the userId here because we are returning it as the first element whenever it exists
+          user_id: {
+            $ne: userId,
+          },
+        }),
       },
-      {
-        $lookup: {
-          from: follow.collection.name,
-          let: { userId: "$follower_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [{ $eq: ["$following_id", "$$userId"] }, { $eq: ["$follower_id", userId] }],
+      query: [
+        {
+          $lookup: {
+            from: follow.collection.name,
+            let: { userId: "$follower_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $eq: ["$following_id", "$$userId"] }, { $eq: ["$follower_id", userId] }],
+                  },
                 },
               },
-            },
-            { $project: { _id: 1 } },
-          ],
-          as: "isFollowing",
+              { $project: { _id: 1 } },
+            ],
+            as: "isFollowing",
+          },
         },
-      },
-      {
-        $project: {
-          follower_id: 1,
-          isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
-          // if the user is a follower we want to return it at the top of the list.
-          priority: {
-            $cond: {
-              if: !cursor,
-              then: { $eq: ["$follower_id", userId] },
-              else: false,
+        {
+          $addFields: {
+            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+            // if the user is a follower we want to return it at the top of the list.
+            priority: {
+              $cond: {
+                if: !next,
+                then: { $eq: ["$follower_id", userId] },
+                else: false,
+              },
             },
           },
         },
-      },
-      {
-        $sort: {
-          priority: -1,
-          _id: -1,
+        {
+          $sort: {
+            priority: -1,
+          },
         },
-      },
-      { $limit: DEFAULT_PAGE_SIZE },
-    ];
+      ],
+    };
 
-    const follows = await follow.aggregate(pipelineStage);
-    const result = await Promise.all(
-      follows.map(async ({ priority, follower_id, ...follow }) => {
+    const result = await infinitePagination<Follow>(paginationParams, follow);
+    const users = await Promise.all(
+      result.results.map(async ({ priority, follower_id, ...follow }) => {
         const user = await spotifyApi.getUser(follower_id);
         return {
           profile: mapSmallIconUser(user.body),
@@ -201,7 +204,7 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
       })
     );
 
-    res.status(200).json({ users: result, cursor: follows.length === DEFAULT_PAGE_SIZE ? follows[follows.length - 1]._id : null });
+    res.status(200).json({ users: users, cursor: result.next });
   } catch (error) {
     return next(error);
   }
@@ -218,59 +221,55 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
     const user = await spotifyApi.getMe();
     const userId = user.body.id;
 
-    const pipelineStage: PipelineStage[] = [
-      {
-        $match: {
-          follower_id: user_id,
-          ...(cursor &&
-            Types.ObjectId.isValid(cursor) && {
-              _id: {
-                $lt: new Types.ObjectId(cursor),
-              },
-              // Need to ignore the userId because we are returning it as the first element whenever it exists
-              following_id: {
-                $ne: userId,
-              },
-            }),
-        },
+    const paginationParams: InfinitePaginationParams<Follow> = {
+      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      limit: DEFAULT_PAGE_SIZE,
+      match: {
+        follower_id: user_id,
+        ...(cursor && {
+          // Need to ignore the userId here because we are returning it as the first element whenever it exists
+          user_id: {
+            $ne: userId,
+          },
+        }),
       },
-      {
-        $lookup: {
-          from: follow.collection.name,
-          let: { userId: "$following_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [{ $eq: ["$follower_id", userId] }, { $eq: ["$following_id", "$$userId"] }],
+      query: [
+        {
+          $lookup: {
+            from: follow.collection.name,
+            let: { userId: "$following_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [{ $eq: ["$follower_id", userId] }, { $eq: ["$following_id", "$$userId"] }],
+                  },
                 },
               },
-            },
-            { $project: { _id: 1 } },
-          ],
-          as: "isFollowing",
+              { $project: { _id: 1 } },
+            ],
+            as: "isFollowing",
+          },
         },
-      },
-      {
-        $addFields: {
-          isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
-          // if the user is being followed we want to return it at the top of the list.
-          priority: {
-            $cond: {
-              if: !cursor,
-              then: { $eq: ["$following_id", userId] },
-              else: false,
+        {
+          $addFields: {
+            isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
+            // if the user is being followed we want to return it at the top of the list.
+            priority: {
+              $cond: {
+                if: !cursor,
+                then: { $eq: ["$following_id", userId] },
+                else: false,
+              },
             },
           },
         },
-      },
-      { $sort: { priority: -1, _id: -1 } },
-      { $limit: DEFAULT_PAGE_SIZE },
-    ];
+      ],
+    };
 
-    const follows = await follow.aggregate(pipelineStage);
-    const result = await Promise.all(
-      follows.map(async ({ priority, following_id, ...follow }) => {
+    const result = await infinitePagination<Follow>(paginationParams, follow);
+    const users = await Promise.all(
+      result.results.map(async ({ priority, following_id, ...follow }) => {
         const user = await spotifyApi.getUser(following_id);
         return {
           profile: mapSmallIconUser(user.body),
@@ -279,7 +278,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
       })
     );
 
-    res.status(200).json({ users: result, cursor: follows.length === DEFAULT_PAGE_SIZE ? follows[follows.length - 1]._id : null });
+    res.status(200).json({ users: users, cursor: result.next });
   } catch (error) {
     return next(error);
   }
@@ -294,85 +293,4 @@ const handleAlbumsSpotifyCalls = async (posts: Post[], spotifyApi: SpotifyWebApi
 
     return { ...post, album: albumInfo };
   });
-};
-
-const handleCursorFilters = async (filter: string | undefined, user_id: string, cursor: string | undefined): Promise<PipelineStage[]> => {
-  switch (filter) {
-    case "oldest":
-      return [
-        {
-          $match: {
-            user_id: user_id,
-            ...(cursor &&
-              Types.ObjectId.isValid(cursor) && {
-                _id: {
-                  $gt: new Types.ObjectId(cursor),
-                },
-              }),
-          },
-        },
-        {
-          $sort: {
-            createdAt: 1,
-            _id: 1,
-          },
-        },
-      ];
-    case "top_rated":
-      const post = await postRating.findById(cursor);
-      return [
-        {
-          $match: {
-            user_id: user_id,
-            ...(cursor &&
-              post &&
-              Types.ObjectId.isValid(cursor) && {
-                $and: [
-                  {
-                    rating: {
-                      $lte: post.rating ?? 10,
-                    },
-                  },
-                  {
-                    $or: [
-                      { rating: { $lt: post.rating ?? 10 } },
-                      {
-                        $and: [{ rating: post.rating ?? 10 }, { _id: { $lt: new Types.ObjectId(cursor) } }],
-                      },
-                    ],
-                  },
-                ],
-              }),
-          },
-        },
-        {
-          $sort: {
-            rating: -1,
-            createdAt: -1,
-            _id: 1,
-          },
-        },
-      ];
-    default:
-    case "latest":
-      return [
-        {
-          $match: {
-            user_id: user_id,
-            ...(cursor &&
-              Types.ObjectId.isValid(cursor) && {
-                _id: {
-                  $lt: new Types.ObjectId(cursor),
-                },
-              }),
-          },
-        },
-        {
-          $sort: {
-            createdAt: -1,
-            _id: -1,
-          },
-        },
-      ];
-  }
 };

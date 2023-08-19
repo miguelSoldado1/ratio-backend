@@ -1,16 +1,8 @@
 import { Schema, model } from "mongoose";
 import config from "../../config";
+import type { PostRating } from "./types";
 
 const COLLECTION_NAME = config.NODE_ENV === "production" ? "postratings" : "postratings_dev";
-
-export type PostRating = {
-  _id: Schema.Types.ObjectId;
-  user_id: string;
-  album_id: string;
-  rating: number;
-  comment: string;
-  createdAt: Date;
-};
 
 const postRatingSchema = new Schema<PostRating>(
   {
