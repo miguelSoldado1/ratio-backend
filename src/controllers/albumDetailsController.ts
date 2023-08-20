@@ -250,7 +250,7 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
             isFollowing: { $gt: [{ $size: "$isFollowing" }, 0] },
             priority: {
               $cond: {
-                if: !next,
+                if: !next || Types.ObjectId.isValid(next),
                 then: { $eq: ["$user_id", userId] },
                 else: false,
               },

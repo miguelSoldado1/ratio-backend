@@ -178,7 +178,7 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
             // if the user is a follower we want to return it at the top of the list.
             priority: {
               $cond: {
-                if: !next,
+                if: !next || Types.ObjectId.isValid(next),
                 then: { $eq: ["$follower_id", userId] },
                 else: false,
               },
@@ -257,11 +257,16 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
             // if the user is being followed we want to return it at the top of the list.
             priority: {
               $cond: {
-                if: !next,
+                if: !next || Types.ObjectId.isValid(next),
                 then: { $eq: ["$following_id", userId] },
                 else: false,
               },
             },
+          },
+        },
+        {
+          $sort: {
+            priority: -1,
           },
         },
       ],
