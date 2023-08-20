@@ -207,8 +207,8 @@ export const deleteLike = async (req: Request, res: Response, next: NextFunction
 
 export const getPostLikes = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { post_id, cursor = undefined } = req.query;
-    if (typeof post_id !== "string" || !Types.ObjectId.isValid(post_id) || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
+    const { post_id, next = undefined } = req.query;
+    if (typeof post_id !== "string" || !Types.ObjectId.isValid(post_id) || (typeof next !== "string" && typeof next !== "undefined")) {
       throw new BadRequest();
     }
 
@@ -217,11 +217,11 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
     const userId = user.body.id;
 
     const paginationParams: InfinitePaginationParams<PostLike> = {
-      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
       limit: DEFAULT_PAGE_SIZE,
       match: {
         post_id: new Types.ObjectId(post_id),
-        ...(cursor && {
+        ...(next && {
           user_id: {
             $ne: userId,
           },
@@ -268,7 +268,7 @@ export const getPostLikes = async (req: Request, res: Response, next: NextFuncti
     const result = await infinitePagination<PostLike>(paginationParams, postLike);
     const users = await Promise.all(result.results.map(async (postLike) => await handleLikesGetUser(postLike, spotifyApi)));
 
-    res.status(200).json({ users: users, cursor: result.next });
+    res.status(200).json({ users: users, next: result.next });
   } catch (error) {
     return next(error);
   }

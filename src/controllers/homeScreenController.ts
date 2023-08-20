@@ -1,10 +1,13 @@
-import { PipelineStage, Types } from "mongoose";
+import type { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapSmallIconUser } from "../scripts";
 import { follow, postLike, postRating } from "../models";
-import { NotFound } from "../errors";
-import type { NextFunction, Request, Response } from "express";
+import { PostRating } from "../models/types";
+import { infinitePagination } from "../pagination";
+import { BadRequest, NotFound } from "../errors";
 import type { FeedPost, Post } from "../types";
+import type { InfinitePaginationParams } from "../pagination/types";
 
 const WEEKS_FOR_LATEST_POSTS = 2;
 const LIMIT_OF_RESULTS = 12;
@@ -100,73 +103,70 @@ export const getMyReleaseRadar = async (req: Request, res: Response, next: NextF
 
 export const getFollowingRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { next = undefined } = req.query;
+    if (typeof next !== "string" && typeof next !== "undefined") {
+      throw new BadRequest();
+    }
+
     const spotifyApi = setAccessToken(req);
     const data = await spotifyApi.getMe();
-    const user_id = data.body.id;
-    const cursor = req.query?.cursor ?? null;
+    const userId = data.body.id;
 
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          $or: [
-            // Match posts from users the current user is following
-            {
-              user_id: {
-                $in: await follow.find({ follower_id: user_id }).distinct("following_id"),
-              },
+    const paginationParams: InfinitePaginationParams<PostRating> = {
+      next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
+      limit: LIMIT_OF_RESULTS,
+      match: {
+        $or: [
+          // Match posts from users the current user is following
+          {
+            user_id: {
+              $in: await follow.find({ follower_id: userId }).distinct("following_id"),
             },
-            // Match posts from the given user
-            {
-              user_id: user_id,
-            },
-          ],
-          _id: {
-            $lt: typeof cursor === "string" ? new Types.ObjectId(cursor) : new Types.ObjectId(),
+          },
+          // Match posts from the given user
+          {
+            user_id: userId,
+          },
+        ],
+        _id: {
+          $lt: typeof next === "string" ? new Types.ObjectId(next) : new Types.ObjectId(),
+        },
+      },
+      query: [
+        {
+          $lookup: {
+            from: postLike.collection.name,
+            localField: "_id",
+            foreignField: "post_id",
+            as: POST_LIKES,
           },
         },
-      },
-      // Sort the posts by the creation date in descending order
-      {
-        $sort: {
-          createdAt: -1,
-        },
-      },
-      {
-        $limit: LIMIT_OF_RESULTS,
-      },
-      {
-        $lookup: {
-          from: postLike.collection.name,
-          localField: "_id",
-          foreignField: "post_id",
-          as: POST_LIKES,
-        },
-      },
-      {
-        $addFields: {
-          likes: { $size: `$${POST_LIKES}` },
-          liked_by_user: {
-            $gt: [
-              {
-                $size: {
-                  $filter: {
-                    input: `$${POST_LIKES}`,
-                    as: "like",
-                    cond: { $eq: ["$$like.user_id", user_id] },
+        {
+          $addFields: {
+            likes: { $size: `$${POST_LIKES}` },
+            liked_by_user: {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: `$${POST_LIKES}`,
+                      as: "like",
+                      cond: { $eq: ["$$like.user_id", userId] },
+                    },
                   },
                 },
-              },
-              0,
-            ],
+                0,
+              ],
+            },
           },
         },
-      },
-    ];
+      ],
+    };
 
-    const postRatings: Post[] = await postRating.aggregate(pipeline);
-    const result = await handlePostsSpotifyCalls(postRatings, spotifyApi);
+    const result = await infinitePagination<PostRating>(paginationParams, postRating);
+    const response = await handlePostsSpotifyCalls(result.results, spotifyApi);
 
-    res.status(200).json({ data: result, cursor: result.length === LIMIT_OF_RESULTS ? result[result.length - 1]._id : null });
+    res.status(200).json({ data: response, next: result.next });
   } catch (error) {
     next(error);
   }

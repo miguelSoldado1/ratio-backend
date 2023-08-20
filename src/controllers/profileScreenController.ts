@@ -30,8 +30,8 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
 
 export const getUserRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id, cursor = undefined, filter } = req.query;
-    if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined") || typeof filter !== "string")
+    const { user_id, next = undefined, filter } = req.query;
+    if (typeof user_id !== "string" || (typeof next !== "string" && typeof next !== "undefined") || typeof filter !== "string")
       throw new BadRequest();
 
     const spotifyApi = setAccessToken(req);
@@ -41,7 +41,7 @@ export const getUserRatings = async (req: Request, res: Response, next: NextFunc
     let filterParams = handleFiltersNew(filter);
 
     const paginationParams: InfinitePaginationParams<PostRating> = {
-      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
       limit: DEFAULT_PAGE_SIZE,
       match: { user_id: user_id },
       query: [
@@ -79,7 +79,7 @@ export const getUserRatings = async (req: Request, res: Response, next: NextFunc
     const result = await infinitePagination<PostRating>(paginationParams, postRating);
     const data = await handleAlbumsSpotifyCalls(result.results, spotifyApi);
 
-    res.status(200).json({ data: data, cursor: result.next });
+    res.status(200).json({ data: data, next: result.next });
   } catch (error) {
     return next(error);
   }
@@ -133,8 +133,8 @@ export const getFollowingInfo = async (req: Request, res: Response, next: NextFu
 
 export const getUserFollowers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id, cursor = undefined } = req.query;
-    if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
+    const { user_id, next = undefined } = req.query;
+    if (typeof user_id !== "string" || (typeof next !== "string" && typeof next !== "undefined")) {
       throw new BadRequest();
     }
 
@@ -143,11 +143,11 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
     const userId = user.body.id;
 
     const paginationParams: InfinitePaginationParams<Follow> = {
-      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
       limit: DEFAULT_PAGE_SIZE,
       match: {
         following_id: user_id,
-        ...(cursor && {
+        ...(next && {
           // Need to ignore the userId here because we are returning it as the first element whenever it exists
           user_id: {
             $ne: userId,
@@ -204,7 +204,7 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
       })
     );
 
-    res.status(200).json({ users: users, cursor: result.next });
+    res.status(200).json({ users: users, next: result.next });
   } catch (error) {
     return next(error);
   }
@@ -212,8 +212,8 @@ export const getUserFollowers = async (req: Request, res: Response, next: NextFu
 
 export const getUserFollowing = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id, cursor = undefined } = req.query;
-    if (typeof user_id !== "string" || (typeof cursor !== "string" && typeof cursor !== "undefined")) {
+    const { user_id, next = undefined } = req.query;
+    if (typeof user_id !== "string" || (typeof next !== "string" && typeof next !== "undefined")) {
       throw new BadRequest();
     }
 
@@ -222,11 +222,11 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
     const userId = user.body.id;
 
     const paginationParams: InfinitePaginationParams<Follow> = {
-      next: cursor && Types.ObjectId.isValid(cursor) ? new Types.ObjectId(cursor) : null,
+      next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
       limit: DEFAULT_PAGE_SIZE,
       match: {
         follower_id: user_id,
-        ...(cursor && {
+        ...(next && {
           // Need to ignore the userId here because we are returning it as the first element whenever it exists
           user_id: {
             $ne: userId,
@@ -257,7 +257,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
             // if the user is being followed we want to return it at the top of the list.
             priority: {
               $cond: {
-                if: !cursor,
+                if: !next,
                 then: { $eq: ["$following_id", userId] },
                 else: false,
               },
@@ -278,7 +278,7 @@ export const getUserFollowing = async (req: Request, res: Response, next: NextFu
       })
     );
 
-    res.status(200).json({ users: users, cursor: result.next });
+    res.status(200).json({ users: users, next: result.next });
   } catch (error) {
     return next(error);
   }
