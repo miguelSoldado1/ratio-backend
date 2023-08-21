@@ -1,8 +1,8 @@
 import { Request } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
+import { PostRating } from "./models/types";
 import { CustomError } from "./errors";
 import { type Album, type User, type Track, type Filter, FilterString } from "./types";
-import { PostRating } from "./models/types";
 
 const ALBUM_TYPE_FILTER = "album";
 
@@ -128,24 +128,12 @@ export const setAccessToken = (request: Request): SpotifyWebApi => {
   return spotifyApi;
 };
 
-export const handleFilters = (filter: string | undefined): Filter => {
-  switch (filter) {
-    case "oldest":
-      return { createdAt: 1, album_id: -1 };
-    case "top_rated":
-      return { rating: -1, createdAt: -1 };
-    case "latest":
-    default:
-      return { createdAt: -1, album_id: 1 };
-  }
-};
-
 export const getCurrentUser = async (req: Request) => {
   const spotifyApi = setAccessToken(req);
   return await spotifyApi.getMe();
 };
 
-export const handleFiltersNew = (filter: string): { sortAscending?: boolean; paginatedField?: keyof PostRating } => {
+export const handleFilters = (filter: string): { sortAscending?: boolean; paginatedField?: keyof PostRating } => {
   switch (filter) {
     case FilterString.oldest:
       return { sortAscending: true };

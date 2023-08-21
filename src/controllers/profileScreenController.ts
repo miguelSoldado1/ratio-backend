@@ -2,10 +2,10 @@ import SpotifyWebApi from "spotify-web-api-node";
 import { Types } from "mongoose";
 import { follow, postLike, postRating } from "../models";
 import { infinitePagination } from "../pagination";
-import { getCurrentUser, handleFiltersNew, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
+import { getCurrentUser, handleFilters, mapAlbum, mapLargeIconUser, mapSmallIconUser, setAccessToken } from "../scripts";
 import { BadRequest, Conflict } from "../errors";
 import type { NextFunction, Request, Response } from "express";
-import type { Post } from "../types";
+import { FilterString, type Post } from "../types";
 import type { InfinitePaginationParams } from "../pagination/types";
 import type { Follow, PostRating } from "../models/types";
 
@@ -30,15 +30,13 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
 
 export const getUserRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { user_id, next = undefined, filter } = req.query;
+    const { user_id, next = undefined, filter = FilterString.latest } = req.query;
     if (typeof user_id !== "string" || (typeof next !== "string" && typeof next !== "undefined") || typeof filter !== "string")
       throw new BadRequest();
 
     const spotifyApi = setAccessToken(req);
     const user = await spotifyApi.getMe();
     const userId = user.body.id;
-
-    let filterParams = handleFiltersNew(filter);
 
     const paginationParams: InfinitePaginationParams<PostRating> = {
       next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
@@ -73,7 +71,7 @@ export const getUserRatings = async (req: Request, res: Response, next: NextFunc
           },
         },
       ],
-      ...filterParams,
+      ...handleFilters(filter),
     };
 
     const result = await infinitePagination<PostRating>(paginationParams, postRating);

@@ -1,17 +1,17 @@
 import { PipelineStage, Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
-import { getAlbumDataAndTracks, mapArtistAlbums, handleFilters, setAccessToken, getCurrentUser, mapSmallIconUser } from "../scripts";
-import { infinitePagination } from "../pagination";
+import { getAlbumDataAndTracks, mapArtistAlbums, setAccessToken, getCurrentUser, mapSmallIconUser, handleFilters } from "../scripts";
+import { infinitePagination, tablePagination } from "../pagination";
 import { BadRequest, Conflict, NotFound } from "../errors";
 import type { NextFunction, Request, Response } from "express";
-import type { LikeAggregationResult } from "../types";
-import type { PostLike } from "../models/types";
-import type { InfinitePaginationParams } from "../pagination/types";
+import { FilterString, type LikeAggregationResult } from "../types";
+import type { PostLike, PostRating } from "../models/types";
+import type { InfinitePaginationParams, TablePaginationParams } from "../pagination/types";
 
 const DEFAULT_PAGE_SIZE = 8;
 const RELATED_RAIL_MAX_SIZE = 10;
-const DEFAULT_PAGE_NUMBER = 0;
+const DEFAULT_RATINGS_PAGE_SIZE = 6;
 const ALBUM_TYPE_FILTER = "album";
 const POST_LIKES = "likes";
 
@@ -38,36 +38,60 @@ export const getAlbum = async (req: Request, res: Response, next: NextFunction) 
 
 export const getCommunityAlbumRating = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { album_id, user_id } = req.query;
+    const { album_id, filter = FilterString.latest, previous = undefined, next = undefined } = req.query;
 
-    const pageSize = req.query.page_size ? parseInt(req.query.page_size?.toString()) : 6;
-    const pageNumber = req.query.page_number ? parseInt(req.query.page_number.toString()) : DEFAULT_PAGE_NUMBER;
+    if (
+      typeof album_id !== "string" ||
+      typeof filter !== "string" ||
+      (typeof next !== "string" && typeof next !== "undefined") ||
+      (typeof previous !== "string" && typeof previous !== "undefined")
+    ) {
+      throw new BadRequest();
+    }
 
-    let filter = handleFilters(req.query.order?.toString());
+    const spotifyApi = setAccessToken(req);
+    const user = await spotifyApi.getMe();
+    const userId = user.body.id;
 
-    const postRatings = await postRating.aggregate([
-      { $match: { album_id: album_id } },
-      { $sort: filter },
-      { $skip: pageNumber * pageSize },
-      { $limit: pageSize },
-      {
-        $lookup: {
-          from: postLike.collection.name,
-          localField: "_id",
-          foreignField: "post_id",
-          as: POST_LIKES,
-        },
-      },
-      {
-        $addFields: {
-          likes: { $size: `$${POST_LIKES}` },
-          liked_by_user: {
-            $gt: [{ $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", user_id] } } } }, 0],
+    const paginationParams: TablePaginationParams<PostRating> = {
+      next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
+      previous: previous && Types.ObjectId.isValid(previous) ? new Types.ObjectId(previous) : null,
+      limit: DEFAULT_RATINGS_PAGE_SIZE,
+      match: { album_id: album_id },
+      query: [
+        {
+          $lookup: {
+            from: postLike.collection.name,
+            localField: "_id",
+            foreignField: "post_id",
+            as: POST_LIKES,
           },
         },
-      },
-    ]);
-    res.status(200).json({ ratings: postRatings, page: pageNumber });
+        {
+          $addFields: {
+            likes: { $size: `$${POST_LIKES}` },
+            liked_by_user: {
+              $gt: [{ $size: { $filter: { input: `$${POST_LIKES}`, as: "like", cond: { $eq: ["$$like.user_id", userId] } } } }, 0],
+            },
+          },
+        },
+      ],
+      ...handleFilters(filter),
+    };
+
+    const result = await tablePagination<PostRating>(paginationParams, postRating);
+
+    const ratings = await Promise.all(
+      result.results.map(async ({ user_id, album_id, ...rating }) => {
+        const user = await spotifyApi.getUser(user_id);
+        return {
+          ...rating,
+          profile: mapSmallIconUser(user.body),
+        };
+      })
+    );
+
+    res.status(200).json({ ratings: ratings, next: result.next, previous: result.previous });
   } catch (error) {
     return next(error);
   }
