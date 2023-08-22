@@ -11,7 +11,7 @@ import type { InfinitePaginationParams, TablePaginationParams } from "../paginat
 
 const DEFAULT_PAGE_SIZE = 8;
 const RELATED_RAIL_MAX_SIZE = 10;
-const DEFAULT_RATINGS_PAGE_SIZE = 3;
+const DEFAULT_RATINGS_PAGE_SIZE = 5;
 const ALBUM_TYPE_FILTER = "album";
 const POST_LIKES = "likes";
 
@@ -36,7 +36,7 @@ export const getAlbum = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const getCommunityAlbumRating = async (req: Request, res: Response, next: NextFunction) => {
+export const getCommunityAlbumRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { album_id, filter = FilterString.latest, previous = undefined, next = undefined } = req.query;
 

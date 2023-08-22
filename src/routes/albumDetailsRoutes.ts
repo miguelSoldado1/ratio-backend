@@ -4,7 +4,7 @@ import * as albumDetailsController from "../controllers/albumDetailsController";
 const router = express.Router();
 
 router.get("/getAlbum", albumDetailsController.getAlbum);
-router.get("/getCommunityAlbumRating", albumDetailsController.getCommunityAlbumRating);
+router.get("/getCommunityAlbumRatings", albumDetailsController.getCommunityAlbumRatings);
 router.get("/getAverageAlbumRating", albumDetailsController.getAverageAlbumRating);
 router.get("/getMyAlbumRating", albumDetailsController.getMyAlbumRating);
 router.get("/getRelatedAlbums", albumDetailsController.getRelatedAlbums);
