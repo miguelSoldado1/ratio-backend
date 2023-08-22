@@ -11,7 +11,7 @@ import type { InfinitePaginationParams, TablePaginationParams } from "../paginat
 
 const DEFAULT_PAGE_SIZE = 8;
 const RELATED_RAIL_MAX_SIZE = 10;
-const DEFAULT_RATINGS_PAGE_SIZE = 6;
+const DEFAULT_RATINGS_PAGE_SIZE = 3;
 const ALBUM_TYPE_FILTER = "album";
 const POST_LIKES = "likes";
 
