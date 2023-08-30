@@ -9,8 +9,8 @@ import { errorHandler, notFound } from "./middleware";
 
 const app = express();
 
-// rate limiting for max 50 request per 1 minutes
-if (config.NODE_ENV !== "local") app.use(rateLimit({ windowMs: 60 * 1000, max: 50, standardHeaders: true, legacyHeaders: false }));
+// rate limiting for max 30 request per 1 minutes
+if (config.NODE_ENV !== "local") app.use(rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
 app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
