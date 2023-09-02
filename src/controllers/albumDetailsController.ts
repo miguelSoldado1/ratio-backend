@@ -153,7 +153,13 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
     const userId = data.body.id;
     const rating = await postRating.findOne({ user_id: userId, album_id: req.body.album_id });
     if (rating === null) {
-      await postRating.create({ ...req.body, user_id: userId, createdAt: new Date() });
+      await postRating.create({
+        album_id: req.body.album_id,
+        rating: req.body.rating,
+        comment: req.body.comment,
+        user_id: userId,
+        createdAt: new Date(),
+      });
       const ratings = await postRating.find({ album_id: req.body.album_id }).sort({ createdAt: -1, album_id: 1 });
       return res.status(201).json(ratings);
     }
