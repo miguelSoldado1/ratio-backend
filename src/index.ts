@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
 import config from "../config";
 import routes from "./routes";
 import { errorHandler, notFound } from "./middleware";
@@ -14,6 +15,13 @@ if (config.NODE_ENV !== "local") app.use(rateLimit({ windowMs: 60 * 1000, max: 5
 app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
+app.use(
+  mongoSanitize({
+    onSanitize: ({ req, key }) => {
+      console.warn(`This request[${key}] is sanitized`, req);
+    },
+  })
+);
 
 app.use(routes);
 app.use(errorHandler);
