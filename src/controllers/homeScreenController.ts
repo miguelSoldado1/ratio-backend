@@ -112,6 +112,11 @@ export const getFollowingRatings = async (req: Request, res: Response, next: Nex
     const data = await spotifyApi.getMe();
     const userId = data.body.id;
 
+    const isFollowingUsers = await follow.exists({ follower_id: userId });
+    if (!isFollowingUsers) {
+      return res.status(200).json({ data: [], next: null });
+    }
+
     const paginationParams: InfinitePaginationParams<PostRating> = {
       next: next && Types.ObjectId.isValid(next) ? new Types.ObjectId(next) : null,
       limit: LIMIT_OF_RESULTS,
