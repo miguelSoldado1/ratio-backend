@@ -97,37 +97,24 @@ export const getCommunityAlbumRatings = async (req: Request, res: Response, next
   }
 };
 
-export const getMyAlbumRating = async (req: Request, res: Response, next: NextFunction) => {
+export const getAlbumRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { album_id, user_id } = req.query;
-    const postRatings = await postRating.findOne({ album_id, user_id });
-    const rating = postRatings?.rating || null;
 
-    res.status(200).json({ personalRating: rating });
+    let averageRating = null;
+    const postRatings = await postRating.aggregate([{ $match: { album_id: album_id } }, { $group: { _id: 0, average: { $avg: "$rating" } } }]);
+    if (postRatings.length > 0) {
+      averageRating = Math.round(postRatings[0].average * 10) / 10;
+    }
+
+    let userRating = null;
+    if (averageRating !== null) {
+      userRating = await postRating.findOne({ album_id: album_id, user_id: user_id });
+    }
+
+    res.status(200).json({ averageRating: averageRating, userRating: userRating?.rating });
   } catch (error) {
     next(error);
-  }
-};
-
-export const getAverageAlbumRating = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    let roundedResult = null;
-    let numRatings = 0;
-    const { album_id } = req.query;
-
-    const pipelineStage: PipelineStage[] = [
-      { $match: { album_id: album_id } },
-      { $group: { _id: 0, sum: { $sum: 1 }, average: { $avg: "$rating" } } },
-    ];
-
-    const postRatings = await postRating.aggregate(pipelineStage);
-    if (postRatings.length > 0) {
-      roundedResult = Math.round(postRatings[0].average * 10) / 10;
-      numRatings = postRatings[0].sum;
-    }
-    res.status(200).json({ averageRating: roundedResult, numRatings: numRatings });
-  } catch (error) {
-    return next(error);
   }
 };
 

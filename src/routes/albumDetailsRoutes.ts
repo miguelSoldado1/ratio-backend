@@ -5,8 +5,7 @@ const router = express.Router();
 
 router.get("/getAlbum", albumDetailsController.getAlbum);
 router.get("/getCommunityAlbumRatings", albumDetailsController.getCommunityAlbumRatings);
-router.get("/getAverageAlbumRating", albumDetailsController.getAverageAlbumRating);
-router.get("/getMyAlbumRating", albumDetailsController.getMyAlbumRating);
+router.get("/getAlbumRatings", albumDetailsController.getAlbumRatings);
 router.get("/getRelatedAlbums", albumDetailsController.getRelatedAlbums);
 router.get("/getUsersProfile", albumDetailsController.getUsersProfile);
 router.post("/createPost", albumDetailsController.createPost);
