@@ -1,12 +1,11 @@
 import express from "express";
-import * as albumDetailsController from "../controllers/albumDetailsController.js";
+import * as albumDetailsController from "../controllers/albumDetailsController";
 
 const router = express.Router();
 
 router.get("/getAlbum", albumDetailsController.getAlbum);
-router.get("/getCommunityAlbumRating", albumDetailsController.getCommunityAlbumRating);
-router.get("/getAverageAlbumRating", albumDetailsController.getAverageAlbumRating);
-router.get("/getMyAlbumRating", albumDetailsController.getMyAlbumRating);
+router.get("/getCommunityAlbumRatings", albumDetailsController.getCommunityAlbumRatings);
+router.get("/getAlbumRatings", albumDetailsController.getAlbumRatings);
 router.get("/getRelatedAlbums", albumDetailsController.getRelatedAlbums);
 router.get("/getUsersProfile", albumDetailsController.getUsersProfile);
 router.post("/createPost", albumDetailsController.createPost);
