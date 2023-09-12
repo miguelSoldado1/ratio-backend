@@ -1,8 +1,5 @@
 import { Schema, model } from "mongoose";
-import config from "../../config";
 import type { Follow } from "./types";
-
-const COLLECTION_NAME = config.NODE_ENV === "production" ? "follow" : "follow_dev";
 
 const followSchema: Schema = new Schema<Follow>(
   {
@@ -13,4 +10,4 @@ const followSchema: Schema = new Schema<Follow>(
   { versionKey: false }
 );
 
-export default model<Follow>("Follow", followSchema, COLLECTION_NAME);
+export default model<Follow>("Follow", followSchema, "follow");

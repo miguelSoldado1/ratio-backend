@@ -1,8 +1,5 @@
 import { Schema, Types, model } from "mongoose";
-import config from "../../config";
 import type { PostLike } from "./types";
-
-const COLLECTION_NAME = config.NODE_ENV === "production" ? "postlike" : "postlike_dev";
 
 const postLikeSchema = new Schema<PostLike>(
   {
@@ -13,4 +10,4 @@ const postLikeSchema = new Schema<PostLike>(
   { versionKey: false }
 );
 
-export default model<PostLike>("PostLike", postLikeSchema, COLLECTION_NAME);
+export default model<PostLike>("PostLike", postLikeSchema, "postlike");

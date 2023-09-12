@@ -1,8 +1,5 @@
 import { Schema, model } from "mongoose";
-import config from "../../config";
 import type { PostRating } from "./types";
-
-const COLLECTION_NAME = config.NODE_ENV === "production" ? "postratings" : "postratings_dev";
 
 const postRatingSchema = new Schema<PostRating>(
   {
@@ -15,4 +12,4 @@ const postRatingSchema = new Schema<PostRating>(
   { versionKey: false }
 );
 
-export default model<PostRating>("PostRating", postRatingSchema, COLLECTION_NAME);
+export default model<PostRating>("PostRating", postRatingSchema, "postrating");
