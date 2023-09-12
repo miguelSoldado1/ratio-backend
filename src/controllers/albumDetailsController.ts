@@ -112,7 +112,7 @@ export const getAlbumRatings = async (req: Request, res: Response, next: NextFun
       userRating = await postRating.findOne({ album_id: album_id, user_id: user_id });
     }
 
-    res.status(200).json({ averageRating: averageRating, userRating: userRating?.rating });
+    res.status(200).json({ averageRating: averageRating, userRating: userRating?.rating ?? null });
   } catch (error) {
     next(error);
   }
