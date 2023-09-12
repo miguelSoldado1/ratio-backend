@@ -10,6 +10,7 @@ import { errorHandler, notFound } from "./middleware";
 
 const app = express();
 
+app.set("trust proxy", true);
 // rate limiting for max 50 request per 1 minutes
 if (config.NODE_ENV !== "local") app.use(rateLimit({ windowMs: 60 * 1000, max: 50, standardHeaders: true, legacyHeaders: false }));
 app.use(bodyParser.json({ limit: "30mb" }));
