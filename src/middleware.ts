@@ -12,5 +12,5 @@ export const errorHandler = (error: Error | CustomError, req: Request, res: Resp
 };
 
 export const notFound = (req: Request, res: Response) => {
-  res.status(404).send({ message: "Endpoint not found.", status: 404 });
+  res.status(404).send({ message: "Endpoint not found!", status: 404 });
 };
