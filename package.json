@@ -3,9 +3,9 @@
   "version": "1.4",
   "main": "src/index.ts",
   "scripts": {
+    "start": "npm run build && ts-node dist/src/index.js",
     "dev": "nodemon src/index.ts",
-    "start": "node dist/index.js",
-    "build": "npm install && tsc"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
