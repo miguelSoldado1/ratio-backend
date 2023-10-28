@@ -1,9 +1,9 @@
 {
   "name": "ratio-backend",
   "version": "1.4",
-  "main": "src/index.ts",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "npm run build && ts-node src/index.js",
     "dev": "nodemon src/index.ts",
     "build": "tsc"
   },
