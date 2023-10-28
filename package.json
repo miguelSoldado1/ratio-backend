@@ -3,8 +3,8 @@
   "version": "1.4",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node ./build/index.js",
     "dev": "nodemon src/index.ts",
+    "start": "node ./dist/index.js",
     "build": "tsc"
   },
   "keywords": [],
