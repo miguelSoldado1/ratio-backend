@@ -18,7 +18,7 @@ to show user specific recommended albums.
 for the database. the [backend](https://github.com/miguelSoldado1/ratio-backend) 
 also heavily uses the [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node).
 - Also the frontend is deployed in [Vercel](https://vercel.com/) and the backend is 
-deployed in [Zeabur](https://dash.zeabur.com).
+deployed in [Cyclic](https://www.cyclic.sh/).
 ## Setup/Environment Variables
 
 1. To run this project, you will need to run 2 terminal instances with the frontend and the
