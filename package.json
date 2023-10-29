@@ -3,9 +3,10 @@
   "version": "1.4",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node dist/src/index.js",
+    "start": "node src/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "postbuild": "mv node_modules ./dist"
   },
   "keywords": [],
   "author": "",
