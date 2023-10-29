@@ -5,8 +5,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "npm i && tsc --build",
-    "postbuild": "mv node_modules ./dist"
+    "build": "tsc --build"
   },
   "keywords": [],
   "author": "",
