@@ -18,7 +18,7 @@ to show user specific recommended albums.
 for the database. the [backend](https://github.com/miguelSoldado1/ratio-backend) 
 also heavily uses the [Spotify Web API Node](https://github.com/thelinmichael/spotify-web-api-node).
 - Also the frontend is deployed in [Vercel](https://vercel.com/) and the backend is 
-deployed in [Railway](https://railway.app/).
+deployed in [Zeabur](https://dash.zeabur.com).
 ## Setup/Environment Variables
 
 1. To run this project, you will need to run 2 terminal instances with the frontend and the
@@ -29,9 +29,9 @@ backend.
 BACK_END_URL = http://localhost:5000
 CLIENT_ID = Spotify Client Id
 CLIENT_SECRET = Spotify Client Secret
-CONNECTION_URL = Connection url to the mongoDB database
+CONNECTION_URL = Connection url to the MongoDB database
 FRONT_END_URL = http://localhost:3000
 SCOPES = user-read-private, user-read-recently-played, user-top-read, user-read-email
 PORT = 5000
 ```
-4. Run `npm run devStart` to start the directory using nodemon for hot reload.
+4. Run `npm run dev` to start the directory using nodemon for hot reload.
