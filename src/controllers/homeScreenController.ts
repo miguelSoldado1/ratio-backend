@@ -1,4 +1,3 @@
-import type { NextFunction, Request, Response } from "express";
 import { Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { getUserRecentAlbums, getUserRecommendedAlbums, setAccessToken, mapAlbum, mapSmallIconUser } from "../scripts";
@@ -6,6 +5,7 @@ import { follow, postLike, postRating } from "../models";
 import { PostRating } from "../models/types";
 import { infinitePagination } from "../pagination";
 import { BadRequest, NotFound } from "../errors";
+import type { NextFunction, Request, Response } from "express";
 import type { FeedPost, Post } from "../types";
 import type { InfinitePaginationParams } from "../pagination/types";
 

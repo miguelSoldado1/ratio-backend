@@ -2,7 +2,7 @@ import { Request } from "express";
 import SpotifyWebApi from "spotify-web-api-node";
 import { PostRating } from "./models/types";
 import { CustomError } from "./errors";
-import { type Album, type User, type Track, type Filter, FilterString } from "./types";
+import { type Album, type User, type Track, FilterString } from "./types";
 
 const ALBUM_TYPE_FILTER = "album";
 
