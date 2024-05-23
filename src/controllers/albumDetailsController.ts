@@ -1,4 +1,4 @@
-import { PipelineStage, Types } from "mongoose";
+import { Types } from "mongoose";
 import SpotifyWebApi from "spotify-web-api-node";
 import { follow, postLike, postRating } from "../models";
 import { getAlbumDataAndTracks, mapArtistAlbums, setAccessToken, getCurrentUser, mapSmallIconUser, handleFilters } from "../scripts";
