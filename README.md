@@ -2,7 +2,7 @@
 # Ratio Backend
 
 - A music rating and discovery web app using the spotify API.
-- https://ratiomusic.site
+- https://ratiomusic.vercel.app
 
 ## About the project
 
